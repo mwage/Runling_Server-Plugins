@@ -115,20 +115,25 @@ namespace LoginPlugin
 
                 var reader = message.GetReader();
 
-                if (reader.Length != 2)
+                string username;
+                string password;
+
+                try
                 {
-                    WriteEvent("LoginPlugin: Invalid Login data received!", LogType.Warning);
+                    username = reader.ReadString();
+                    password = reader.ReadString();
+                }
+                catch (Exception exception)
+                {
+                    WriteEvent("LoginPlugin: Invalid Login data received! - " + exception, LogType.Warning);
 
                     // Return Error 0 for Invalid Data Recieved
                     var writer = new DarkRiftWriter();
-                    writer.Write((byte) 0);
+                    writer.Write((byte)0);
                     client.SendMessage(new TagSubjectMessage(LoginTag, LoginFailed, writer), SendMode.Reliable);
                     return;
                 }
-
-                var username = reader.ReadString();
-                var password = reader.ReadString();
-
+                
                 try
                 {
                     var user = _dbConnector.Users.AsQueryable().FirstOrDefault(u => u.Username == username);
@@ -142,14 +147,14 @@ namespace LoginPlugin
 
                         if (_debug)
                         {
-                            WriteEvent("[LoginPlugin] Successful login (" + client.GlobalID + ").", LogType.Info);
+                            WriteEvent("Successful login (" + client.GlobalID + ").", LogType.Info);
                         }
                     }
                     else
                     {
                         if (_debug)
                         {
-                            WriteEvent("[LoginPlugin] User " + client.GlobalID + " couldn't log in!", LogType.Info);
+                            WriteEvent("User " + client.GlobalID + " couldn't log in!", LogType.Info);
                         }
 
                         // Return Error 1 for "Wrong username/password combination"
@@ -161,6 +166,11 @@ namespace LoginPlugin
                 catch (Exception exception)
                 {
                     _dbConnector.LogException(exception, "LoginPlugin: Login");
+
+                    // Return Error 2 for Database error
+                    var writer = new DarkRiftWriter();
+                    writer.Write((byte)2);
+                    client.SendMessage(new TagSubjectMessage(LoginTag, LoginFailed, writer), SendMode.Reliable);
                 }
             }
 
@@ -179,19 +189,24 @@ namespace LoginPlugin
 
                 var reader = message.GetReader();
 
-                if (reader.Length != 2)
+                string username;
+                string password;
+                
+                try
                 {
-                    WriteEvent("LoginPlugin: Invalid Login data received!", LogType.Warning);
+                    username = reader.ReadString();
+                    password = BCrypt.Net.BCrypt.HashPassword(reader.ReadString(), 10);
+                }
+                catch (Exception exception)
+                {
+                    WriteEvent("LoginPlugin: Invalid AddUser data received! - " + exception, LogType.Warning);
 
                     // Return Error 0 for Invalid Data Recieved
                     var writer = new DarkRiftWriter();
                     writer.Write((byte)0);
-                    client.SendMessage(new TagSubjectMessage(LoginTag, LoginFailed, writer), SendMode.Reliable);
+                    client.SendMessage(new TagSubjectMessage(LoginTag, AddUserFailed, writer), SendMode.Reliable);
                     return;
                 }
-
-                var username = reader.ReadString();
-                var password = BCrypt.Net.BCrypt.HashPassword(reader.ReadString(), 10);
 
                 try
                 {
@@ -204,7 +219,7 @@ namespace LoginPlugin
                     {
                         if (_debug)
                         {
-                            WriteEvent("[LoginPlugin] User " + client.GlobalID + " failed to sign up!", LogType.Info);
+                            WriteEvent("User " + client.GlobalID + " failed to sign up!", LogType.Info);
                         }
 
                         // Return Error 1 for "Wrong username/password combination"
@@ -216,6 +231,11 @@ namespace LoginPlugin
                 catch (Exception exception)
                 {
                     _dbConnector.LogException(exception, "LoginPlugin: Add User");
+
+                    // Return Error 2 for Database error
+                    var writer = new DarkRiftWriter();
+                    writer.Write((byte)2);
+                    client.SendMessage(new TagSubjectMessage(LoginTag, AddUserFailed, writer), SendMode.Reliable);
                 }
             }
         }
@@ -226,7 +246,7 @@ namespace LoginPlugin
                 UsersLoggedIn.Remove(id);
 
             if (_debug)
-                WriteEvent("[LoginPlugin] User " + id + " logged out!", LogType.Info);
+                WriteEvent("User " + id + " logged out!", LogType.Info);
         }
 
         private bool UsernameAvailable(string username)
@@ -250,7 +270,7 @@ namespace LoginPlugin
 
                 if (_debug)
                 {
-                    WriteEvent("[LoginPlugin] New User: " + username, LogType.Info);
+                    WriteEvent("New User: " + username, LogType.Info);
                 }
             }
             catch (Exception e)
