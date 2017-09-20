@@ -34,14 +34,14 @@ namespace LoginPlugin
         private const ushort AddUser = 2;
         private const ushort LoginSuccess = 3;
         private const ushort LoginFailed = 4;
-        private const ushort LogoutSucces = 5;
+        private const ushort LogoutSuccess = 5;
         private const ushort AddUserSuccess = 6;
         private const ushort AddUserFailed = 7;
 
         // Connects the clients Global ID with his username
         public Dictionary<uint, string> UsersLoggedIn = new Dictionary<uint, string>();
 
-        private string _configPath = @"Plugins\Login.xml";
+        private const string ConfigPath = @"Plugins\Login.xml";
         private DbConnector _dbConnector;
         private bool _allowAddUser = true;
         private bool _debug = true;
@@ -57,27 +57,34 @@ namespace LoginPlugin
         {
             XDocument document;
 
-            if (!File.Exists(_configPath))
+            if (!File.Exists(ConfigPath))
             {
                 document = new XDocument(new XDeclaration("1.0", "utf-8", "yes"),
                     new XComment("Settings for the Login Plugin"),
                     new XElement("Variables", new XAttribute("Debug", true), new XAttribute("AllowAddUser", true))
                     );
+                try
+                {
+                    document.Save(ConfigPath);
+                    WriteEvent("Created /Plugins/Login.xml!", LogType.Warning);
+                }
+                catch (Exception ex)
+                {
+                    WriteEvent("Failed to create Login.xml: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
+                }
 
-                document.Save(_configPath);
-                WriteEvent("Created /Plugins/Login.xml!", LogType.Warning);
             }
             else
             {
                 try
                 {
-                    document = XDocument.Load(_configPath);
+                    document = XDocument.Load(ConfigPath);
                     _debug = document.Element("Variables").Attribute("Debug").Value == "true";
                     _allowAddUser = document.Element("Variables").Attribute("AllowAddUser").Value == "true";
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    WriteEvent("Failed to load Login.xml.", LogType.Error);
+                    WriteEvent("Failed to load Login.xml: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
                 }
             }
         }
@@ -87,7 +94,7 @@ namespace LoginPlugin
             UsersLoggedIn[e.Client.GlobalID] = "";
             e.Client.MessageReceived += OnMessageReceived;
 
-            // Substitute for the Plugin.Loaded method from DR2 Pro
+            // If you have DR2 Pro, use the Plugin.Loaded() method to get the DbConnector Plugin instead
             if (_dbConnector == null)
             {
                 _dbConnector = PluginManager.GetPluginByType<DbConnector>();
@@ -96,7 +103,10 @@ namespace LoginPlugin
 
         private void OnPlayerDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
-            Logout(e.Client.GlobalID);
+            if (UsersLoggedIn.ContainsKey(e.Client.GlobalID))
+            {
+                UsersLoggedIn.Remove(e.Client.GlobalID);
+            }
         }
 
         private void OnMessageReceived(object sender, MessageReceivedEventArgs e)
@@ -109,9 +119,12 @@ namespace LoginPlugin
             // Login Request
             if (message.Subject == LoginUser)
             {
-                // Make sure user isn't already logged in
+                // If user is already logged in (shouldn't happen though)
                 if (UsersLoggedIn[client.GlobalID] != "")
+                {
+                    client.SendMessage(new TagSubjectMessage(LoginTag, LoginSuccess, new DarkRiftWriter()), SendMode.Reliable);
                     return;
+                }
 
                 var reader = message.GetReader();
 
@@ -123,11 +136,11 @@ namespace LoginPlugin
                     username = reader.ReadString();
                     password = reader.ReadString();
                 }
-                catch (Exception exception)
+                catch (Exception ex)
                 {
-                    WriteEvent("LoginPlugin: Invalid Login data received! - " + exception, LogType.Warning);
+                    WriteEvent("LoginPlugin: Invalid Login data received: " + ex.Message + " - " + ex.StackTrace, LogType.Warning);
 
-                    // Return Error 0 for Invalid Data Recieved
+                    // Return Error 0 for Invalid Data Packages Recieved
                     var writer = new DarkRiftWriter();
                     writer.Write((byte)0);
                     client.SendMessage(new TagSubjectMessage(LoginTag, LoginFailed, writer), SendMode.Reliable);
@@ -141,9 +154,7 @@ namespace LoginPlugin
                     {
                         UsersLoggedIn[client.GlobalID] = username;
 
-                        var writer = new DarkRiftWriter();
-                        writer.Write(client.GlobalID);
-                        client.SendMessage(new TagSubjectMessage(LoginTag, LoginSuccess, writer), SendMode.Reliable);
+                        client.SendMessage(new TagSubjectMessage(LoginTag, LoginSuccess, new DarkRiftWriter()), SendMode.Reliable);
 
                         if (_debug)
                         {
@@ -163,9 +174,9 @@ namespace LoginPlugin
                         client.SendMessage(new TagSubjectMessage(LoginTag, LoginFailed, writer), SendMode.Reliable);
                     }
                 }
-                catch (Exception exception)
+                catch (Exception ex)
                 {
-                    _dbConnector.LogException(exception, "LoginPlugin: Login");
+                    WriteEvent("Database Error: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
 
                     // Return Error 2 for Database error
                     var writer = new DarkRiftWriter();
@@ -177,8 +188,13 @@ namespace LoginPlugin
             // Logout Request
             if (message.Subject == LogoutUser)
             {
-                Logout(client.GlobalID);
-                client.SendMessage(new TagSubjectMessage(LoginTag, LogoutSucces, new DarkRiftWriter()), SendMode.Reliable);
+                UsersLoggedIn[client.GlobalID] = "";
+
+                if (_debug)
+                {
+                    WriteEvent("User " + client.GlobalID + " logged out!", LogType.Info);
+                }
+                client.SendMessage(new TagSubjectMessage(LoginTag, LogoutSuccess, new DarkRiftWriter()), SendMode.Reliable);
             }
 
             // Registration Request
@@ -197,9 +213,9 @@ namespace LoginPlugin
                     username = reader.ReadString();
                     password = BCrypt.Net.BCrypt.HashPassword(reader.ReadString(), 10);
                 }
-                catch (Exception exception)
+                catch (Exception ex)
                 {
-                    WriteEvent("LoginPlugin: Invalid AddUser data received! - " + exception, LogType.Warning);
+                    WriteEvent("LoginPlugin: Invalid AddUser data received: " + ex.Message + " - " + ex.StackTrace, LogType.Warning);
 
                     // Return Error 0 for Invalid Data Recieved
                     var writer = new DarkRiftWriter();
@@ -228,9 +244,9 @@ namespace LoginPlugin
                         client.SendMessage(new TagSubjectMessage(LoginTag, AddUserFailed, writer), SendMode.Reliable);
                     }
                 }
-                catch (Exception exception)
+                catch (Exception ex)
                 {
-                    _dbConnector.LogException(exception, "LoginPlugin: Add User");
+                    WriteEvent("Database Error: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
 
                     // Return Error 2 for Database error
                     var writer = new DarkRiftWriter();
@@ -240,42 +256,18 @@ namespace LoginPlugin
             }
         }
 
-        private void Logout(uint id)
-        {
-            if (UsersLoggedIn.ContainsKey(id))
-                UsersLoggedIn.Remove(id);
-
-            if (_debug)
-                WriteEvent("User " + id + " logged out!", LogType.Info);
-        }
-
         private bool UsernameAvailable(string username)
         {
-            try
-            {
-                return _dbConnector.Users.AsQueryable().FirstOrDefault(u => u.Username == username) == null;
-            }
-            catch (Exception e)
-            {
-                _dbConnector.LogException(e, "LoginPlugin: CheckUsername");
-                return false;
-            }
+            return _dbConnector.Users.AsQueryable().FirstOrDefault(u => u.Username == username) == null;
         }
 
         private void AddNewUser(string username, string password)
         {
-            try
-            {
-                _dbConnector.Users.InsertOne(new User(username, password));
+            _dbConnector.Users.InsertOne(new User(username, password));
 
-                if (_debug)
-                {
-                    WriteEvent("New User: " + username, LogType.Info);
-                }
-            }
-            catch (Exception e)
+            if (_debug)
             {
-                _dbConnector.LogException(e, "LoginPlugin: AddNewUser");
+                WriteEvent("New User: " + username, LogType.Info);
             }
         }
         
@@ -300,13 +292,29 @@ namespace LoginPlugin
         private void AddUserCommand(object sender, CommandEventArgs e)
         {
             if (e.Arguments.Length != 2)
+            {
+                WriteEvent("Invalid arguments. Enter [AddUser name password].", LogType.Warning);
                 return;
+            }
 
             var username = e.Arguments[0];
             var password = BCrypt.Net.BCrypt.HashPassword(e.Arguments[1], 10);
 
-            if (UsernameAvailable(username))
-                AddNewUser(username, password);
+            try
+            {
+                if (UsernameAvailable(username))
+                {
+                    AddNewUser(username, password);
+                }
+                else
+                {
+                    WriteEvent("Username already in use.", LogType.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteEvent("Database Error: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
+            }
         }
 
         private void AllowAddUserCommand(object sender, CommandEventArgs e)

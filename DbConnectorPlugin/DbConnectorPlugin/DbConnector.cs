@@ -15,24 +15,23 @@ namespace DbConnectorPlugin
 
         public IMongoCollection<Message> Messages;
         public IMongoCollection<User> Users;
-        
-        private string _configPath = @"Plugins\DbConnector.xml";
+
+        private const string ConfigPath = @"Plugins\DbConnector.xml";
         private readonly IMongoDatabase _database;
 
         public DbConnector(PluginLoadData pluginLoadData) : base(pluginLoadData)
         {
             var connectionString = LoadConfig();
-            WriteEvent(connectionString, LogType.Trace);
+
             try
             {
                 var client = new MongoClient(connectionString);
                 _database = client.GetDatabase("test");
                 GetCollections();
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LogException(e, "Database Setup");
-                throw;
+                WriteEvent("Failed to set up Database:" + ex.Message + " - " + ex.StackTrace, LogType.Fatal);
             }
         }
 
@@ -41,47 +40,42 @@ namespace DbConnectorPlugin
         {
             XDocument document;
 
-            if (!File.Exists(_configPath))
+            if (!File.Exists(ConfigPath))
             {
                 document = new XDocument(new XDeclaration("1.0", "utf-8", "yes"),
                     new XComment("Insert your ConnectionString below!"),
                     new XElement("ConnectionString", "mongodb://localhost:27017"));
-                document.Save(_configPath);
-                WriteEvent(
-                    "Created /Plugins/DbConnector.xml. Please adjust your connection string and restart the server!",
-                    LogType.Warning);
-                return "mongodb://localhost:27017";
+                try
+                {
+                    document.Save(ConfigPath);
+                    WriteEvent("Created /Plugins/DbConnector.xml. Please adjust your connection string and restart the server!",
+                        LogType.Warning);
+                    return "mongodb://localhost:27017";
+                }
+                catch(Exception ex)
+                {
+                    WriteEvent("Failed to create DbConnector.xml: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
+                    return null;
+                }
             }
 
             try
             {
-                document = XDocument.Load(_configPath);
-
-                if (document.Element("ConnectionString") == null || document.Element("ConnectionString").Value == null)
-                {
-                    WriteEvent("Couldn't load connection string from Plugins/DbConnector.xml.", LogType.Fatal);
-                    return null;
-                }
+                document = XDocument.Load(ConfigPath);
 
                 return document.Element("ConnectionString").Value;
-            }
-            catch (Exception e)
-            {
-                WriteEvent("Failed to load DbConnector.xml.", LogType.Error);
-                throw;
-            }
 
+            }
+            catch (Exception ex)
+            {
+                WriteEvent("Failed to load DbConnector.xml: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
+                return null;
+            }
         }
 
         private void GetCollections()
         {
-            Messages = _database.GetCollection<Message>("messages");
             Users = _database.GetCollection<User>("users");
-        }
-
-        public void LogException(Exception e, string context)
-        {
-            WriteEvent("Mongo DB exception (" + context + "): ", LogType.Error, e);
         }
     }
 }
