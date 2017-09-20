@@ -6,9 +6,9 @@ using System.Xml.Linq;
 using DarkRift;
 using DarkRift.Server;
 using DbConnectorPlugin;
-using MongoDB.Bson;
 using MongoDB.Driver;
-using MongoDB.Driver.Linq;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace LoginPlugin
 {
@@ -29,17 +29,19 @@ namespace LoginPlugin
         private const byte LoginTag = 0;
 
         // Subjects
-        private const ushort LoginUser = 0;
-        private const ushort LogoutUser = 1;
-        private const ushort AddUser = 2;
-        private const ushort LoginSuccess = 3;
-        private const ushort LoginFailed = 4;
-        private const ushort LogoutSuccess = 5;
-        private const ushort AddUserSuccess = 6;
-        private const ushort AddUserFailed = 7;
+        private const ushort Keys = 0;
+        private const ushort LoginUser = 1;
+        private const ushort LogoutUser = 2;
+        private const ushort AddUser = 3;
+        private const ushort LoginSuccess = 4;
+        private const ushort LoginFailed = 5;
+        private const ushort LogoutSuccess = 6;
+        private const ushort AddUserSuccess = 7;
+        private const ushort AddUserFailed = 8;
 
         // Connects the clients Global ID with his username
         public Dictionary<uint, string> UsersLoggedIn = new Dictionary<uint, string>();
+        private Dictionary<uint, RSAParameters> _keys = new Dictionary<uint, RSAParameters>();
 
         private const string ConfigPath = @"Plugins\Login.xml";
         private DbConnector _dbConnector;
@@ -92,6 +94,13 @@ namespace LoginPlugin
         private void OnPlayerConnected(object sender, ClientConnectedEventArgs e)
         {
             UsersLoggedIn[e.Client.GlobalID] = "";
+            _keys[e.Client.GlobalID] = Encryption.GenerateKeys(out var publicKey);
+
+            var writer = new DarkRiftWriter();
+            writer.Write(publicKey.Exponent);
+            writer.Write(publicKey.Modulus);
+
+            e.Client.SendMessage(new TagSubjectMessage(LoginTag, Keys, writer), SendMode.Reliable);
             e.Client.MessageReceived += OnMessageReceived;
 
             // If you have DR2 Pro, use the Plugin.Loaded() method to get the DbConnector Plugin instead
@@ -107,6 +116,10 @@ namespace LoginPlugin
             {
                 UsersLoggedIn.Remove(e.Client.GlobalID);
             }
+            if (_keys.ContainsKey(e.Client.GlobalID))
+            {
+                _keys.Remove(e.Client.GlobalID);
+            }
         }
 
         private void OnMessageReceived(object sender, MessageReceivedEventArgs e)
@@ -115,7 +128,7 @@ namespace LoginPlugin
                 return;
 
             var client = (Client)sender;
-            
+
             // Login Request
             if (message.Subject == LoginUser)
             {
@@ -126,15 +139,14 @@ namespace LoginPlugin
                     return;
                 }
 
-                var reader = message.GetReader();
-
                 string username;
                 string password;
 
                 try
                 {
+                    var reader = message.GetReader();
                     username = reader.ReadString();
-                    password = reader.ReadString();
+                    password = Encryption.Decrypt(reader.ReadBytes(), _keys[client.GlobalID]);
                 }
                 catch (Exception ex)
                 {
@@ -203,15 +215,17 @@ namespace LoginPlugin
                 if (!_allowAddUser)
                     return;
 
-                var reader = message.GetReader();
-
                 string username;
                 string password;
                 
                 try
                 {
+                    var reader = message.GetReader();
                     username = reader.ReadString();
-                    password = BCrypt.Net.BCrypt.HashPassword(reader.ReadString(), 10);
+                    
+                    password = BCrypt.Net.BCrypt.HashPassword(
+                        Encryption.Decrypt(reader.ReadBytes(), _keys[client.GlobalID])
+                        , 10);
                 }
                 catch (Exception ex)
                 {
