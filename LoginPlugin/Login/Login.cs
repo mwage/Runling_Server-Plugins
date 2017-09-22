@@ -150,7 +150,7 @@ namespace LoginPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("LoginPlugin: Invalid Login data received: " + ex.Message + " - " + ex.StackTrace, LogType.Warning);
+                    WriteEvent("Invalid Login data received: " + ex.Message + " - " + ex.StackTrace, LogType.Warning);
 
                     // Return Error 0 for Invalid Data Packages Recieved
                     var writer = new DarkRiftWriter();
@@ -229,7 +229,7 @@ namespace LoginPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("LoginPlugin: Invalid AddUser data received: " + ex.Message + " - " + ex.StackTrace, LogType.Warning);
+                    WriteEvent("Invalid AddUser data received: " + ex.Message + " - " + ex.StackTrace, LogType.Warning);
 
                     // Return Error 0 for Invalid Data Recieved
                     var writer = new DarkRiftWriter();
