@@ -8,14 +8,13 @@ namespace DbConnectorPlugin
         [BsonId]
         public string Username { get; }
         public string Password { get; }
-        public List<string> Friends = new List<string>();
+        public List<string> Friends;
 
         public User(string username, string password)
         {
             Username = username;
             Password = password;
-            Friends.Add("");
-            Friends.Remove("");
+            Friends = new List<string>();
         }
     }
 }
