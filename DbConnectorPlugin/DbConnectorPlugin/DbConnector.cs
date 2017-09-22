@@ -12,7 +12,6 @@ namespace DbConnectorPlugin
         public override Version Version => new Version(1, 0, 0);
         public override bool ThreadSafe => false;
 
-        public IMongoCollection<Message> Messages;
         public IMongoCollection<User> Users;
 
         private const string ConfigPath = @"Plugins\DbConnector.xml";
@@ -25,7 +24,7 @@ namespace DbConnectorPlugin
             try
             {
                 var client = new MongoClient(connectionString);
-                _database = client.GetDatabase("test");
+                _database = client.GetDatabase("runling");
                 GetCollections();
             }
             catch (Exception ex)
