@@ -278,9 +278,9 @@ namespace RoomSystemPlugin
             }
         }
 
-        private byte GenerateRoomId()
+        private ushort GenerateRoomId()
         {
-            byte i = 0;
+            ushort i = 0;
             while (true)
             {
                 if (!_roomList.ContainsKey(i))
