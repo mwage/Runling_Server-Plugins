@@ -207,6 +207,7 @@ namespace LoginPlugin
                 {
                     WriteEvent("User " + client.GlobalID + " logged out!", LogType.Info);
                 }
+
                 client.SendMessage(new TagSubjectMessage(LoginTag, LogoutSuccess, new DarkRiftWriter()), SendMode.Reliable);
             }
 

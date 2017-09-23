@@ -8,14 +8,14 @@ namespace RoomSystemPlugin
     internal class Room : IDarkRiftSerializable
     {
         public string Name { get; }
-        public GameMode GameMode { get; }
+        public GameType GameMode { get; }
         public List<Player> PlayerList = new List<Player>();
         public List<Client> Clients = new List<Client>();
         public byte MaxPlayers => GetMaxPlayers();
         public bool HasStarted { get; }
         public bool IsVisible { get; }
 
-        public Room(string name, GameMode gameMode, bool isVisible)
+        public Room(string name, GameType gameMode, bool isVisible)
         {
             Name = name;
             GameMode = gameMode;
@@ -46,9 +46,9 @@ namespace RoomSystemPlugin
         {
             switch (GameMode)
             {
-                case GameMode.Arena:
+                case GameType.Arena:
                     return 8;
-                case GameMode.Runling:
+                case GameType.Runling:
                     return 10;
                 default:
                     return 0;

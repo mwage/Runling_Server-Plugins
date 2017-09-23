@@ -82,17 +82,17 @@ namespace RoomSystemPlugin
             if (message.Subject == Create)
             {
                 string name;
-                GameMode gameMode;
-                Color color;
+                GameType gameMode;
+                PlayerColor color;
                 bool isVisible;
 
                 try
                 {
                     var reader = message.GetReader();
                     name = reader.ReadString();
-                    gameMode = (GameMode) reader.ReadByte();
-                    color = (Color) reader.ReadByte();
+                    gameMode = (GameType) reader.ReadByte();
                     isVisible = reader.ReadBoolean();
+                    color = (PlayerColor)reader.ReadByte();
                 }
                 catch (Exception ex)
                 {
@@ -125,14 +125,14 @@ namespace RoomSystemPlugin
             {
                 ushort roomId;
                 string playerName;
-                Color color;
+                PlayerColor color;
 
                 try
                 {
                     var reader = message.GetReader();
                     roomId = reader.ReadUInt16();
                     playerName = reader.ReadString();
-                    color = (Color) reader.ReadByte();
+                    color = (PlayerColor) reader.ReadByte();
                 }
                 catch (Exception ex)
                 {
@@ -166,9 +166,9 @@ namespace RoomSystemPlugin
                         byte i = 0;
                         while (true)
                         {
-                            if (room.PlayerList.All(p => p.Color != (Color) i))
+                            if (room.PlayerList.All(p => p.Color != (PlayerColor) i))
                             {
-                                newPlayer.SetNewColor((Color) i);
+                                newPlayer.SetNewColor((PlayerColor) i);
                                 break;
                             }
                         }
@@ -222,13 +222,13 @@ namespace RoomSystemPlugin
             if (message.Subject == ChangeColor)
             {
                 ushort roomId;
-                Color color;
+                PlayerColor color;
 
                 try
                 {
                     var reader = message.GetReader();
                     roomId = reader.ReadUInt16();
-                    color = (Color) reader.ReadByte();
+                    color = (PlayerColor) reader.ReadByte();
                 }
                 catch (Exception ex)
                 {
@@ -293,13 +293,13 @@ namespace RoomSystemPlugin
         }
     }
 
-    internal enum GameMode : byte
+    internal enum GameType : byte
     {
         Arena,
         Runling
     }
 
-    internal enum Color : byte
+    internal enum PlayerColor : byte
     {
         Green,
         Red,

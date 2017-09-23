@@ -7,9 +7,9 @@ namespace RoomSystemPlugin
         public uint Id { get; }
         public string Name { get; }
         public bool IsHost { get; }
-        public Color Color { get; private set; }
+        public PlayerColor Color { get; private set; }
 
-        public Player(uint id, string name, bool isHost, Color color)
+        public Player(uint id, string name, bool isHost, PlayerColor color)
         {
             Id = id;
             Name = name;
@@ -17,7 +17,7 @@ namespace RoomSystemPlugin
             Color = color;
         }
 
-        public void SetNewColor(Color color)
+        public void SetNewColor(PlayerColor color)
         {
             Color = color;
         }
