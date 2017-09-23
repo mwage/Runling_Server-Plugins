@@ -13,7 +13,7 @@ namespace RoomSystemPlugin
         public override bool ThreadSafe => false;
 
         // Tag
-        private const byte RoomTag = 2;
+        private const byte RoomTag = 3;
 
         // Subjects
         private const ushort Create = 0;

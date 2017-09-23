@@ -8,7 +8,6 @@ using DarkRift.Server;
 using DbConnectorPlugin;
 using MongoDB.Driver;
 using System.Security.Cryptography;
-using MongoDB.Bson;
 
 namespace LoginPlugin
 {
@@ -23,9 +22,7 @@ namespace LoginPlugin
             new Command("DelUser", "Deletes a User from the Database [DelUser name]", "", DelUserCommand),
             new Command("LPDebug", "Enables Plugin Debug", "", DebugCommand),
             new Command("Online", "Logs number of online users", "", UsersLoggedInCommand),
-            new Command("LoggedIn", "Logs number of online users", "", UsersOnlineCommand),
-            new Command("AddFriend", "Adds a User to the Database [AddFriend name friend]", "", AddFriendCommand),
-            new Command("DelFriend", "Deletes a User from the Database [DelFriend name friend]", "", DelFriendCommand),
+            new Command("LoggedIn", "Logs number of online users", "", UsersOnlineCommand)
         };
 
         // Tag
@@ -44,7 +41,7 @@ namespace LoginPlugin
 
         // Connects the clients Global ID with his username
         public Dictionary<uint, string> UsersLoggedIn = new Dictionary<uint, string>();
-        private Dictionary<uint, RSAParameters> _keys = new Dictionary<uint, RSAParameters>();
+        private readonly Dictionary<uint, RSAParameters> _keys = new Dictionary<uint, RSAParameters>();
 
         private const string ConfigPath = @"Plugins\Login.xml";
         private DbConnector _dbConnector;
@@ -289,18 +286,6 @@ namespace LoginPlugin
             }
         }
 
-        private void AddFriend(string username, string friend)
-        {
-                var update = Builders<User>.Update.AddToSet(u => u.Friends, friend);
-                _dbConnector.Users.UpdateOne(u => u.Username == username, update);
-
-            if (_debug)
-            {
-                WriteEvent("Added " + friend + " as a friend of " + username, LogType.Info);
-            }
-        }
-
-
         #region Commands
 
         private void UsersLoggedInCommand(object sender, CommandEventArgs e)
@@ -391,55 +376,6 @@ namespace LoginPlugin
                 default:
                     WriteEvent("Please enter [AllowAddUser off] or [AllowAddUser on]", LogType.Info);
                     break;
-            }
-        }
-
-        private void AddFriendCommand(object sender, CommandEventArgs e)
-        {
-            if (_dbConnector == null)
-            {
-                _dbConnector = PluginManager.GetPluginByType<DbConnector>();
-            }
-
-            if (e.Arguments.Length != 2)
-            {
-                WriteEvent("Invalid arguments. Enter [AddFríend name friend].", LogType.Warning);
-                return;
-            }
-
-            var username = e.Arguments[0];
-            var friend = e.Arguments[1];
-
-            try
-            {
-                AddFriend(username, friend);
-            }
-            catch (Exception ex)
-            {
-                WriteEvent("Database Error: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
-            }
-        }
-
-        private void DelFriendCommand(object sender, CommandEventArgs e)
-        {
-            if (_dbConnector == null)
-            {
-                _dbConnector = PluginManager.GetPluginByType<DbConnector>();
-            }
-
-            var username = e.Arguments[0];
-            var friend = e.Arguments[1];
-
-            try
-            {   
-                var update = Builders<User>.Update.Pull(u => u.Friends, friend);
-                _dbConnector.Users.UpdateOne(u => u.Username == username, update);
-
-                WriteEvent("Removed friend " + friend + " from " + username, LogType.Info);
-            }
-            catch (Exception ex)
-            {
-                WriteEvent("Database Error: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
             }
         }
         #endregion

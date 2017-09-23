@@ -36,7 +36,8 @@
     <Reference Include="DarkRift.Server">
       <HintPath>..\..\..\Lib\DarkRift.Server.dll</HintPath>
     </Reference>
-    <Reference Include="Login">
+    <Reference Include="Login, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\Plugins\Login.dll</HintPath>
     </Reference>
     <Reference Include="System" />
