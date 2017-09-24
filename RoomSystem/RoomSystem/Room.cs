@@ -7,6 +7,7 @@ namespace RoomSystemPlugin
 {
     public class Room : IDarkRiftSerializable
     {
+        public ushort Id { get; }
         public string Name { get; }
         public GameType GameType { get; }
         public List<Player> PlayerList = new List<Player>();
@@ -15,11 +16,12 @@ namespace RoomSystemPlugin
         public bool HasStarted { get; }
         public bool IsVisible { get; }
 
-        public Room(string name, GameType gameType, bool isVisible)
+        public Room(ushort id, string name, GameType gameType, bool isVisible)
         {
             Name = name;
             GameType = gameType;
             IsVisible = isVisible;
+            Id = id;
             HasStarted = false;
         }
 
@@ -35,10 +37,11 @@ namespace RoomSystemPlugin
 
         internal bool RemovePlayer(uint playerId)
         {
-            if (PlayerList.All(p => p.Id != playerId))
+            if (PlayerList.All(p => p.Id != playerId) && Clients.All(c => c.GlobalID != playerId))
                 return false;
 
             PlayerList.Remove(PlayerList.Find(p => p.Id == playerId));
+            Clients.Remove(Clients.Find(c => c.GlobalID == playerId));
             return true;
         }
 
@@ -57,6 +60,7 @@ namespace RoomSystemPlugin
 
         public void Serialize(SerializeEvent e)
         {
+            e.Writer.Write(Id);
             e.Writer.Write(Name);
             e.Writer.Write((byte)GameType);
             e.Writer.Write(MaxPlayers);
