@@ -20,12 +20,13 @@ namespace RoomSystemPlugin
         private const ushort Join = 1;
         private const ushort Leave = 2;
         private const ushort GetOpenRooms = 3;
-        private const ushort CreateFailed = 4;
-        private const ushort CreateSuccess = 5;
-        private const ushort JoinFailed = 6;
-        private const ushort JoinSuccess = 7;
-        private const ushort PlayerJoined = 8;
-        private const ushort LeaveSuccess = 9;
+        private const ushort GetOpenRoomsFailed = 4;
+        private const ushort CreateFailed = 5;
+        private const ushort CreateSuccess = 6;
+        private const ushort JoinFailed = 7;
+        private const ushort JoinSuccess = 8;
+        private const ushort PlayerJoined = 9;
+        private const ushort LeaveSuccess = 10;
         private const ushort ChangeColor = 11;
         private const ushort ChangeColorSuccess = 12;
         private const ushort ChangeColorFailed = 13;
@@ -81,6 +82,15 @@ namespace RoomSystemPlugin
             // Create Room Request
             if (message.Subject == Create)
             {
+                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client.GlobalID))
+                {
+                    // If player isn't logged in -> return error 2
+                    var writer = new DarkRiftWriter();
+                    writer.Write((byte)2);
+                    client.SendMessage(new TagSubjectMessage(RoomTag, CreateFailed, writer), SendMode.Reliable);
+                    return;
+                }
+
                 string name;
                 GameType gameMode;
                 PlayerColor color;
@@ -123,6 +133,15 @@ namespace RoomSystemPlugin
             // Join Room Request
             if (message.Subject == Join)
             {
+                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client.GlobalID))
+                {
+                    // If player isn't logged in -> return error 2
+                    var writer = new DarkRiftWriter();
+                    writer.Write((byte)2);
+                    client.SendMessage(new TagSubjectMessage(RoomTag, JoinFailed, writer), SendMode.Reliable);
+                    return;
+                }
+
                 ushort roomId;
                 string playerName;
                 PlayerColor color;
@@ -268,6 +287,12 @@ namespace RoomSystemPlugin
 
             if (message.Subject == GetOpenRooms)
             {
+                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client.GlobalID))
+                {
+                    client.SendMessage(new TagSubjectMessage(RoomTag, GetOpenRoomsFailed, new DarkRiftWriter()), SendMode.Reliable);
+                    return;
+                }
+
                 var availableRooms = _roomList.Values.Where(r => r.IsVisible && !r.HasStarted).ToList();
                 var writer = new DarkRiftWriter();
                 foreach (var room in availableRooms)
