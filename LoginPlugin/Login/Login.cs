@@ -274,7 +274,7 @@ namespace LoginPlugin
 
         private bool UsernameAvailable(string username)
         {
-            return _dbConnector.Users.AsQueryable().FirstOrDefault(u => u.Username == username) == null;
+            return !_dbConnector.Users.AsQueryable().Any(u => u.Username == username);
         }
 
         private void AddNewUser(string username, string password)
