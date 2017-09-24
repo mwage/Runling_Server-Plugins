@@ -2,7 +2,7 @@ using DarkRift;
 
 namespace RoomSystemPlugin
 {
-    internal class Player : IDarkRiftSerializable
+    public class Player : IDarkRiftSerializable
     {
         public uint Id { get; }
         public string Name { get; }

@@ -91,7 +91,7 @@ namespace RoomSystemPlugin
                     return;
                 }
 
-                string name;
+                string roomName;
                 GameType gameMode;
                 PlayerColor color;
                 bool isVisible;
@@ -99,7 +99,7 @@ namespace RoomSystemPlugin
                 try
                 {
                     var reader = message.GetReader();
-                    name = reader.ReadString();
+                    roomName = reader.ReadString();
                     gameMode = (GameType) reader.ReadByte();
                     isVisible = reader.ReadBoolean();
                     color = (PlayerColor)reader.ReadByte();
@@ -116,22 +116,23 @@ namespace RoomSystemPlugin
                     return;
                 }
 
+                roomName = AdjustRoomName(roomName, _loginPlugin.UsersLoggedIn[client.GlobalID]);
                 var roomId = GenerateRoomId();
-                var room = new Room(name, gameMode, isVisible);
-                room.AddPlayer(new Player(client.GlobalID, _loginPlugin.UsersLoggedIn[client.GlobalID], true, color),
-                    client);
+                var room = new Room(roomName, gameMode, isVisible);
+                var player = new Player(client.GlobalID, _loginPlugin.UsersLoggedIn[client.GlobalID], true, color);
+                room.AddPlayer(player, client);
                 _roomList.Add(roomId, room);
                 _playersInRooms.Add(client.GlobalID, room);
 
                 var wr = new DarkRiftWriter();
                 wr.Write(roomId);
                 wr.Write(room);
-                wr.Write((byte) color);
+                wr.Write(player);
                 client.SendMessage(new TagSubjectMessage(RoomTag, CreateSuccess, wr), SendMode.Reliable);
             }
 
             // Join Room Request
-            if (message.Subject == Join)
+            else if (message.Subject == Join)
             {
                 if (!_loginPlugin.UsersLoggedIn.ContainsKey(client.GlobalID))
                 {
@@ -221,7 +222,7 @@ namespace RoomSystemPlugin
             }
             
             // Leave Room Request
-            if (message.Subject == Leave)
+            else if (message.Subject == Leave)
             {
                 var id = client.GlobalID;
                 var room = _playersInRooms[id]; 
@@ -238,7 +239,7 @@ namespace RoomSystemPlugin
             }
 
             // Change Color Request
-            if (message.Subject == ChangeColor)
+            else if (message.Subject == ChangeColor)
             {
                 ushort roomId;
                 PlayerColor color;
@@ -285,7 +286,8 @@ namespace RoomSystemPlugin
                 }
             }
 
-            if (message.Subject == GetOpenRooms)
+            // Get Open Rooms Request
+            else if (message.Subject == GetOpenRooms)
             {
                 if (!_loginPlugin.UsersLoggedIn.ContainsKey(client.GlobalID))
                 {
@@ -316,15 +318,25 @@ namespace RoomSystemPlugin
                 i++;
             }
         }
+
+        private static string AdjustRoomName(string roomName, string playerName)
+        {
+            if (roomName == "")
+            {
+                return  playerName + "'s Lobby";
+            }
+
+            return roomName;
+        }
     }
 
-    internal enum GameType : byte
+    public enum GameType : byte
     {
         Arena,
         Runling
     }
 
-    internal enum PlayerColor : byte
+    public enum PlayerColor : byte
     {
         Green,
         Red,

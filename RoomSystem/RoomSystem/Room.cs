@@ -5,20 +5,20 @@ using DarkRift.Server;
 
 namespace RoomSystemPlugin
 {
-    internal class Room : IDarkRiftSerializable
+    public class Room : IDarkRiftSerializable
     {
         public string Name { get; }
-        public GameType GameMode { get; }
+        public GameType GameType { get; }
         public List<Player> PlayerList = new List<Player>();
         public List<Client> Clients = new List<Client>();
         public byte MaxPlayers => GetMaxPlayers();
         public bool HasStarted { get; }
         public bool IsVisible { get; }
 
-        public Room(string name, GameType gameMode, bool isVisible)
+        public Room(string name, GameType gameType, bool isVisible)
         {
             Name = name;
-            GameMode = gameMode;
+            GameType = gameType;
             IsVisible = isVisible;
             HasStarted = false;
         }
@@ -44,7 +44,7 @@ namespace RoomSystemPlugin
 
         private byte GetMaxPlayers()
         {
-            switch (GameMode)
+            switch (GameType)
             {
                 case GameType.Arena:
                     return 8;
@@ -58,9 +58,9 @@ namespace RoomSystemPlugin
         public void Serialize(SerializeEvent e)
         {
             e.Writer.Write(Name);
-            e.Writer.Write((byte)GameMode);
+            e.Writer.Write((byte)GameType);
             e.Writer.Write(MaxPlayers);
-            e.Writer.Write(PlayerList.Count);
+            e.Writer.Write((byte)PlayerList.Count);
         }
 
         public void Deserialize(DeserializeEvent e)
