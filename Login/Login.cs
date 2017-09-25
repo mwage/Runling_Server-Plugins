@@ -158,6 +158,15 @@ namespace LoginPlugin
                     client.SendMessage(new TagSubjectMessage(LoginTag, LoginFailed, writer), SendMode.Reliable);
                     return;
                 }
+
+                if (UsersLoggedIn.ContainsValue(username))
+                {
+                    // User is already logged in -> return Error 3
+                    var writer = new DarkRiftWriter();
+                    writer.Write((byte)3);
+                    client.SendMessage(new TagSubjectMessage(LoginTag, LoginFailed, writer), SendMode.Reliable);
+                    return;
+                }
                 
                 try
                 {
