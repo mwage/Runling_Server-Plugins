@@ -6,7 +6,7 @@ namespace RoomSystemPlugin
     {
         public uint Id { get; }
         public string Name { get; }
-        public bool IsHost { get; }
+        public bool IsHost { get; private set; }
         public PlayerColor Color { get; private set; }
 
         public Player(uint id, string name, bool isHost, PlayerColor color)
@@ -20,6 +20,11 @@ namespace RoomSystemPlugin
         public void SetNewColor(PlayerColor color)
         {
             Color = color;
+        }
+
+        public void SetHost(bool isHost)
+        {
+            IsHost = isHost;
         }
 
         public void Serialize(SerializeEvent e)

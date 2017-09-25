@@ -27,9 +27,10 @@ namespace RoomSystemPlugin
         private const ushort JoinSuccess = 8;
         private const ushort PlayerJoined = 9;
         private const ushort LeaveSuccess = 10;
-        private const ushort ChangeColor = 11;
-        private const ushort ChangeColorSuccess = 12;
-        private const ushort ChangeColorFailed = 13;
+        private const ushort PlayerLeft = 11;
+        private const ushort ChangeColor = 12;
+        private const ushort ChangeColorSuccess = 13;
+        private const ushort ChangeColorFailed = 14;
 
         private Login _loginPlugin;
         private bool _debug = true;
@@ -134,30 +135,39 @@ namespace RoomSystemPlugin
                 }
 
                 ushort roomId;
-                string playerName;
                 PlayerColor color;
 
                 try
                 {
                     var reader = message.GetReader();
                     roomId = reader.ReadUInt16();
-                    playerName = reader.ReadString();
                     color = (PlayerColor) reader.ReadByte();
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Room Join Failed! Invalid Data received: " + ex.Message + " - " + ex.StackTrace,
-                        LogType.Warning);
 
                     // Return Error 0 for Invalid Data Packages Recieved
                     var writer = new DarkRiftWriter();
                     writer.Write((byte) 0);
                     client.SendMessage(new TagSubjectMessage(RoomTag, JoinFailed, writer), SendMode.Reliable);
+
+                    WriteEvent("Room Join Failed! Invalid Data received: " + ex.Message + " - " + ex.StackTrace,
+                        LogType.Warning);
                     return;
                 }
 
+                if (!_roomList.ContainsKey(roomId))
+                {
+                    // Return Error 3 for Room doesn't exist anymore
+                    var writer = new DarkRiftWriter();
+                    writer.Write((byte)3);
+                    client.SendMessage(new TagSubjectMessage(RoomTag, JoinFailed, writer), SendMode.Reliable);
+
+                    WriteEvent("Room Join Failed! Room " + roomId + " doesn't exist anymore", LogType.Info);
+                    return;
+                }
                 var room = _roomList[roomId];
-                var newPlayer = new Player(client.GlobalID, playerName, false, color);
+                var newPlayer = new Player(client.GlobalID, _loginPlugin.UsersLoggedIn[client.GlobalID], false, color);
 
                 // Check if player already is in an active room -> Send error 1
                 if (_playersInRooms.ContainsKey(client.GlobalID))
@@ -171,29 +181,31 @@ namespace RoomSystemPlugin
                     {
                         WriteEvent("User " + client.GlobalID + " couldn't join Room " + room.Id + ", since he already is in Room: " + _playersInRooms[client.GlobalID], LogType.Info);
                     }
+                    return;
                 }
 
                 if (room.AddPlayer(newPlayer, client))
                 {
                     // Generate new color if requested one is taken
-                    if (room.PlayerList.Any(p => p.Color == color))
+                    if (room.PlayerList.Exists(p => p.Color == color))
                     {
                         byte i = 0;
-                        while (true)
+                        while (room.PlayerList.Exists(p => p.Color == (PlayerColor)i))
                         {
-                            if (room.PlayerList.All(p => p.Color != (PlayerColor) i))
-                            {
-                                newPlayer.SetNewColor((PlayerColor) i);
-                                break;
-                            }
+                            i++;
                         }
+                        newPlayer.SetNewColor((PlayerColor)i);
                     }
 
+                    _playersInRooms[client.GlobalID] = room;
+
                     var writer = new DarkRiftWriter();
+                    writer.Write(room);
                     foreach (var player in room.PlayerList)
                     {
                         writer.Write(player);
                     }
+
                     client.SendMessage(new TagSubjectMessage(RoomTag, JoinSuccess, writer), SendMode.Reliable);
 
                     // Let the other clients know
@@ -207,7 +219,7 @@ namespace RoomSystemPlugin
 
                     if (_debug)
                     {
-                        WriteEvent("User " + client.GlobalID + "joined Room " + room.Id, LogType.Info);
+                        WriteEvent("User " + client.GlobalID + " joined Room " + room.Id, LogType.Info);
                     }
                 }
                 // Room full or has started -> Send error 2
@@ -301,7 +313,7 @@ namespace RoomSystemPlugin
 
                     if (_debug)
                     {
-                        WriteEvent("GetRoomRequest failed. Player wasn't logged in.", LogType.Info);
+                        WriteEvent("GetRoomRequest failed. Player wasn't logged in.", LogType.Warning);
                     }
                     return;
                 }
@@ -314,11 +326,6 @@ namespace RoomSystemPlugin
                     writer.Write(room);
                 }
                 client.SendMessage(new TagSubjectMessage(RoomTag, GetOpenRooms, writer), SendMode.Reliable);
-
-                if (_debug)
-                {
-                    WriteEvent("GetRoomRequest successful.", LogType.Info);
-                }
             }
         }
 
@@ -357,31 +364,38 @@ namespace RoomSystemPlugin
 
             if (room.RemovePlayer(id))
             {
-                var writer = new DarkRiftWriter();
-                writer.Write(id);
-
                 // Only message user if he's still connected (would cause error if LeaveRoom is called from Disconnect otherwise)
                 if (client.IsConnected)
                 {
-                    client.SendMessage(new TagSubjectMessage(RoomTag, LeaveSuccess, writer), SendMode.Reliable);
+                    client.SendMessage(new TagSubjectMessage(RoomTag, LeaveSuccess, new DarkRiftWriter()), SendMode.Reliable);
                 }
-                // Let all other players in the room know
-                foreach (var cl in room.Clients)
+
+                // Remove room if it's empty
+                if (room.PlayerList.Count == 0)
                 {
-                    cl.SendMessage(new TagSubjectMessage(RoomTag, LeaveSuccess, writer), SendMode.Reliable);
+                    _roomList.Remove(_roomList.FirstOrDefault(r => r.Value == room).Key);
+                    WriteEvent("Room " + room.Id + " deleted!", LogType.Info);
+                }
+                // otherwise set a new host and let other players know
+                else
+                {
+                    var newHost = room.PlayerList.First();
+                    newHost.SetHost(true);
+
+                    var writer = new DarkRiftWriter();
+                    writer.Write(id);
+                    writer.Write(newHost.Id);
+
+                    foreach (var cl in room.Clients)
+                    {
+                        cl.SendMessage(new TagSubjectMessage(RoomTag, PlayerLeft, writer), SendMode.Reliable);
+                    }
                 }
 
                 if (_debug)
                 {
                     WriteEvent("User " + client.GlobalID + " left Room: " + room.Name,
                         LogType.Info);
-                }
-
-                // Remove empty rooms
-                if (room.PlayerList.Count == 0)
-                {
-                    _roomList.Remove(_roomList.FirstOrDefault(r => r.Value == room).Key);
-                    WriteEvent("Room " + room.Id + " deleted!", LogType.Info);
                 }
             }
             else
