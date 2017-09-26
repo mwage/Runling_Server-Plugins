@@ -40,8 +40,8 @@ namespace LoginPlugin
         private const ushort AddUserFailed = 8;
 
         // Connects the clients Global ID with his username
-        public Dictionary<uint, string> UsersLoggedIn = new Dictionary<uint, string>();
-        private readonly Dictionary<uint, RSAParameters> _keys = new Dictionary<uint, RSAParameters>();
+        public Dictionary<Client, string> UsersLoggedIn = new Dictionary<Client, string>();
+        private readonly Dictionary<Client, RSAParameters> _keys = new Dictionary<Client, RSAParameters>();
 
         private const string ConfigPath = @"Plugins\Login.xml";
         private DbConnector _dbConnector;
@@ -74,7 +74,6 @@ namespace LoginPlugin
                 {
                     WriteEvent("Failed to create Login.xml: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
                 }
-
             }
             else
             {
@@ -93,8 +92,8 @@ namespace LoginPlugin
 
         private void OnPlayerConnected(object sender, ClientConnectedEventArgs e)
         {
-            UsersLoggedIn[e.Client.GlobalID] = "";
-            _keys[e.Client.GlobalID] = Encryption.GenerateKeys(out var publicKey);
+            UsersLoggedIn[e.Client] = "";
+            _keys[e.Client] = Encryption.GenerateKeys(out var publicKey);
 
             var writer = new DarkRiftWriter();
             writer.Write(publicKey.Exponent);
@@ -112,13 +111,13 @@ namespace LoginPlugin
 
         private void OnPlayerDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
-            if (UsersLoggedIn.ContainsKey(e.Client.GlobalID))
+            if (UsersLoggedIn.ContainsKey(e.Client))
             {
-                UsersLoggedIn.Remove(e.Client.GlobalID);
+                UsersLoggedIn.Remove(e.Client);
             }
-            if (_keys.ContainsKey(e.Client.GlobalID))
+            if (_keys.ContainsKey(e.Client))
             {
-                _keys.Remove(e.Client.GlobalID);
+                _keys.Remove(e.Client);
             }
         }
 
@@ -133,7 +132,7 @@ namespace LoginPlugin
             if (message.Subject == LoginUser)
             {
                 // If user is already logged in (shouldn't happen though)
-                if (UsersLoggedIn[client.GlobalID] != "")
+                if (UsersLoggedIn[client] != "")
                 {
                     client.SendMessage(new TagSubjectMessage(LoginTag, LoginSuccess, new DarkRiftWriter()), SendMode.Reliable);
                     return;
@@ -146,7 +145,7 @@ namespace LoginPlugin
                 {
                     var reader = message.GetReader();
                     username = reader.ReadString();
-                    password = Encryption.Decrypt(reader.ReadBytes(), _keys[client.GlobalID]);
+                    password = Encryption.Decrypt(reader.ReadBytes(), _keys[client]);
                 }
                 catch (Exception ex)
                 {
@@ -161,7 +160,7 @@ namespace LoginPlugin
 
                 if (UsersLoggedIn.ContainsValue(username))
                 {
-                    // User is already logged in -> return Error 3
+                    // Username is already in use -> return Error 3
                     var writer = new DarkRiftWriter();
                     writer.Write((byte)3);
                     client.SendMessage(new TagSubjectMessage(LoginTag, LoginFailed, writer), SendMode.Reliable);
@@ -174,7 +173,7 @@ namespace LoginPlugin
 
                     if (user != null && BCrypt.Net.BCrypt.Verify(password, user.Password))
                     {
-                        UsersLoggedIn[client.GlobalID] = username;
+                        UsersLoggedIn[client] = username;
 
                         client.SendMessage(new TagSubjectMessage(LoginTag, LoginSuccess, new DarkRiftWriter()), SendMode.Reliable);
 
@@ -210,7 +209,7 @@ namespace LoginPlugin
             // Logout Request
             if (message.Subject == LogoutUser)
             {
-                UsersLoggedIn[client.GlobalID] = "";
+                UsersLoggedIn[client] = "";
 
                 if (_debug)
                 {
@@ -235,7 +234,7 @@ namespace LoginPlugin
                     username = reader.ReadString();
                     
                     password = BCrypt.Net.BCrypt.HashPassword(
-                        Encryption.Decrypt(reader.ReadBytes(), _keys[client.GlobalID])
+                        Encryption.Decrypt(reader.ReadBytes(), _keys[client])
                         , 10);
                 }
                 catch (Exception ex)

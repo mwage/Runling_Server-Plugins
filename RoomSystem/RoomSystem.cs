@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using DarkRift;
 using DarkRift.Server;
 using LoginPlugin;
@@ -32,6 +34,7 @@ namespace RoomSystemPlugin
         private const ushort ChangeColorSuccess = 13;
         private const ushort ChangeColorFailed = 14;
 
+        private const string ConfigPath = @"Plugins\RoomSystem.xml";
         private Login _loginPlugin;
         private bool _debug = true;
         private readonly Dictionary<ushort, Room> _roomList = new Dictionary<ushort, Room>();
@@ -39,8 +42,43 @@ namespace RoomSystemPlugin
 
         public RoomSystem(PluginLoadData pluginLoadData) : base(pluginLoadData)
         {
+            LoadConfig();
             ClientManager.ClientConnected += OnPlayerConnected;
             ClientManager.ClientDisconnected += OnPlayerDisconnected;
+        }
+
+        private void LoadConfig()
+        {
+            XDocument document;
+
+            if (!File.Exists(ConfigPath))
+            {
+                document = new XDocument(new XDeclaration("1.0", "utf-8", "yes"),
+                    new XComment("Settings for the RoomSystem Plugin"),
+                    new XElement("Variables", new XAttribute("Debug", true))
+                );
+                try
+                {
+                    document.Save(ConfigPath);
+                    WriteEvent("Created /Plugins/RoomSystem.xml!", LogType.Warning);
+                }
+                catch (Exception ex)
+                {
+                    WriteEvent("Failed to create RoomSystem.xml: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
+                }
+            }
+            else
+            {
+                try
+                {
+                    document = XDocument.Load(ConfigPath);
+                    _debug = document.Element("Variables").Attribute("Debug").Value == "true";
+                }
+                catch (Exception ex)
+                {
+                    WriteEvent("Failed to load Login.xml: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
+                }
+            }
         }
 
         private void OnPlayerConnected(object sender, ClientConnectedEventArgs e)
@@ -68,7 +106,7 @@ namespace RoomSystemPlugin
             // Create Room Request
             if (message.Subject == Create)
             {
-                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client.GlobalID))
+                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client))
                 {
                     // If player isn't logged in -> return error 2
                     var writer = new DarkRiftWriter();
@@ -102,11 +140,11 @@ namespace RoomSystemPlugin
                     return;
                 }
 
-                roomName = AdjustRoomName(roomName, _loginPlugin.UsersLoggedIn[client.GlobalID]);
+                roomName = AdjustRoomName(roomName, _loginPlugin.UsersLoggedIn[client]);
                 var roomId = GenerateRoomId();
 
                 var room = new Room(roomId, roomName, gameMode, isVisible);
-                var player = new Player(client.GlobalID, _loginPlugin.UsersLoggedIn[client.GlobalID], true, color);
+                var player = new Player(client.GlobalID, _loginPlugin.UsersLoggedIn[client], true, color);
                 room.AddPlayer(player, client);
                 _roomList.Add(roomId, room);
                 _playersInRooms.Add(client.GlobalID, room);
@@ -125,7 +163,7 @@ namespace RoomSystemPlugin
             // Join Room Request
             else if (message.Subject == Join)
             {
-                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client.GlobalID))
+                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client))
                 {
                     // If player isn't logged in -> return error 2
                     var writer = new DarkRiftWriter();
@@ -167,7 +205,7 @@ namespace RoomSystemPlugin
                     return;
                 }
                 var room = _roomList[roomId];
-                var newPlayer = new Player(client.GlobalID, _loginPlugin.UsersLoggedIn[client.GlobalID], false, color);
+                var newPlayer = new Player(client.GlobalID, _loginPlugin.UsersLoggedIn[client], false, color);
 
                 // Check if player already is in an active room -> Send error 1
                 if (_playersInRooms.ContainsKey(client.GlobalID))
@@ -307,7 +345,7 @@ namespace RoomSystemPlugin
             else if (message.Subject == GetOpenRooms)
             {
                 // Check if player is logged in
-                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client.GlobalID))
+                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client))
                 {
                     client.SendMessage(new TagSubjectMessage(RoomTag, GetOpenRoomsFailed, new DarkRiftWriter()), SendMode.Reliable);
 

@@ -36,10 +36,6 @@
     <Reference Include="DarkRift.Server">
       <HintPath>..\..\..\Lib\DarkRift.Server.dll</HintPath>
     </Reference>
-    <Reference Include="Login, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Plugins\Login.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -54,6 +50,12 @@
     <Compile Include="Room.cs" />
     <Compile Include="RoomSystem.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Login\Login.csproj">
+      <Project>{c46ea14e-d389-43f4-b781-954c91727df7}</Project>
+      <Name>Login</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -9,12 +9,14 @@ namespace DbConnectorPlugin
         public string Username { get; }
         public string Password { get; }
         public List<string> Friends;
+        public List<string> OpenFriendRequests;
 
         public User(string username, string password)
         {
             Username = username;
             Password = password;
             Friends = new List<string>();
+            OpenFriendRequests = new List<string>();
         }
     }
 }
