@@ -36,13 +36,13 @@ namespace RoomSystemPlugin
             return true;
         }
 
-        internal bool RemovePlayer(uint playerId)
+        internal bool RemovePlayer(Client client)
         {
-            if (PlayerList.All(p => p.Id != playerId) && Clients.All(c => c.GlobalID != playerId))
+            if (PlayerList.All(p => p.Id != client.GlobalID) && !Clients.Contains(client))
                 return false;
 
-            PlayerList.Remove(PlayerList.Find(p => p.Id == playerId));
-            Clients.Remove(Clients.Find(c => c.GlobalID == playerId));
+            PlayerList.Remove(PlayerList.Find(p => p.Id == client.GlobalID));
+            Clients.Remove(client);
             return true;
         }
 

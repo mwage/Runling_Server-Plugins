@@ -12,7 +12,6 @@ namespace ChatPlugin
 {
     public class Friends : Plugin
     {
-
         public override Version Version => new Version(1, 0, 0);
         public override bool ThreadSafe => false;
 
@@ -119,10 +118,7 @@ namespace ChatPlugin
                     writer.Write((byte)1);
                     client.SendMessage(new TagSubjectMessage(FriendsTag, RequestFailed, writer), SendMode.Reliable);
 
-                    if (_debug)
-                    {
-                        WriteEvent("FriendRequest failed. Player wasn't logged in.", LogType.Warning);
-                    }
+                    WriteEvent("FriendRequest failed. Player wasn't logged in.", LogType.Warning);
                     return;
                 }
 
@@ -190,11 +186,8 @@ namespace ChatPlugin
                     var writer = new DarkRiftWriter();
                     writer.Write((byte)1);
                     client.SendMessage(new TagSubjectMessage(FriendsTag, DeclineRequestFailed, writer), SendMode.Reliable);
-
-                    if (_debug)
-                    {
-                        WriteEvent("DeclineFriendRequest failed. Player wasn't logged in.", LogType.Warning);
-                    }
+                    
+                    WriteEvent("DeclineFriendRequest failed. Player wasn't logged in.", LogType.Warning);
                     return;
                 }
 
@@ -263,10 +256,7 @@ namespace ChatPlugin
                     writer.Write((byte)1);
                     client.SendMessage(new TagSubjectMessage(FriendsTag, AcceptRequestFailed, writer), SendMode.Reliable);
 
-                    if (_debug)
-                    {
-                        WriteEvent("AcceptFriendRequest failed. Player wasn't logged in.", LogType.Warning);
-                    }
+                    WriteEvent("AcceptFriendRequest failed. Player wasn't logged in.", LogType.Warning);
                     return;
                 }
 
@@ -336,10 +326,7 @@ namespace ChatPlugin
                     writer.Write((byte)1);
                     client.SendMessage(new TagSubjectMessage(FriendsTag, RemoveFriendFailed, writer), SendMode.Reliable);
 
-                    if (_debug)
-                    {
-                        WriteEvent("RemoveFriend failed. Player wasn't logged in.", LogType.Warning);
-                    }
+                    WriteEvent("RemoveFriend failed. Player wasn't logged in.", LogType.Warning);
                     return;
                 }
 

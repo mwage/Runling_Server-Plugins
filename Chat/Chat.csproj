@@ -59,6 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Chat.cs" />
+    <Compile Include="ChatGroup.cs" />
     <Compile Include="Friends.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
