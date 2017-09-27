@@ -106,16 +106,9 @@ namespace RoomSystemPlugin
             // Create Room Request
             if (message.Subject == Create)
             {
-                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client))
-                {
-                    // If player isn't logged in -> return error 2
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)2);
-                    client.SendMessage(new TagSubjectMessage(RoomTag, CreateFailed, writer), SendMode.Reliable);
-
-                    WriteEvent("Create Room failed. Player wasn't logged in.", LogType.Warning);
+                // If player isn't logged in -> return error 1
+                if (!_loginPlugin.PlayerLoggedIn(client, RoomTag, CreateFailed, "Create Room failed."))
                     return;
-                }
 
                 string roomName;
                 GameType gameMode;
@@ -132,13 +125,8 @@ namespace RoomSystemPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Room Create Failed! Invalid Data received: " + ex.Message + " - " + ex.StackTrace,
-                        LogType.Warning);
-
                     // Return Error 0 for Invalid Data Packages Recieved
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte) 0);
-                    client.SendMessage(new TagSubjectMessage(RoomTag, CreateFailed, writer), SendMode.Reliable);
+                    _loginPlugin.InvalidData(client, RoomTag, CreateFailed, ex, "Room Create Failed!");
                     return;
                 }
 
@@ -165,16 +153,9 @@ namespace RoomSystemPlugin
             // Join Room Request
             else if (message.Subject == Join)
             {
-                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client))
-                {
-                    // If player isn't logged in -> return error 2
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)2);
-                    client.SendMessage(new TagSubjectMessage(RoomTag, JoinFailed, writer), SendMode.Reliable);
-
-                    WriteEvent("Join Room failed. Player wasn't logged in.", LogType.Warning);
+                // If player isn't logged in -> return error 1
+                if (!_loginPlugin.PlayerLoggedIn(client, RoomTag, JoinFailed, "Join Room failed."))
                     return;
-                }
 
                 ushort roomId;
                 PlayerColor color;
@@ -187,14 +168,8 @@ namespace RoomSystemPlugin
                 }
                 catch (Exception ex)
                 {
-
                     // Return Error 0 for Invalid Data Packages Recieved
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte) 0);
-                    client.SendMessage(new TagSubjectMessage(RoomTag, JoinFailed, writer), SendMode.Reliable);
-
-                    WriteEvent("Room Join Failed! Invalid Data received: " + ex.Message + " - " + ex.StackTrace,
-                        LogType.Warning);
+                    _loginPlugin.InvalidData(client, RoomTag, JoinFailed, ex, "Room Join Failed! ");
                     return;
                 }
 
@@ -215,7 +190,7 @@ namespace RoomSystemPlugin
                 var room = RoomList[roomId];
                 var newPlayer = new Player(client.GlobalID, _loginPlugin.UsersLoggedIn[client], false, color);
 
-                // Check if player already is in an active room -> Send error 1
+                // Check if player already is in an active room -> Send error 2
                 if (_playersInRooms.ContainsKey(client.GlobalID))
                 {
                     var writer = new DarkRiftWriter();
@@ -304,13 +279,8 @@ namespace RoomSystemPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Change Color Failed! Invalid Data received: " + ex.Message + " - " + ex.StackTrace,
-                        LogType.Warning);
-
                     // Return Error 0 for Invalid Data Packages Recieved
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte) 0);
-                    client.SendMessage(new TagSubjectMessage(RoomTag, ChangeColorFailed, writer), SendMode.Reliable);
+                    _loginPlugin.InvalidData(client, RoomTag, ChangeColorFailed, ex, "Change Color Failed! ");
                     return;
                 }
 
@@ -351,14 +321,9 @@ namespace RoomSystemPlugin
             // Get Open Rooms Request
             else if (message.Subject == GetOpenRooms)
             {
-                // Check if player is logged in
-                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client))
-                {
-                    client.SendMessage(new TagSubjectMessage(RoomTag, GetOpenRoomsFailed, new DarkRiftWriter()), SendMode.Reliable);
-
-                    WriteEvent("GetRoomRequest failed. Player wasn't logged in.", LogType.Warning);
+                // If player isn't logged in -> return error 1
+                if (!_loginPlugin.PlayerLoggedIn(client, RoomTag, GetOpenRoomsFailed, "GetRoomRequest failed."))
                     return;
-                }
 
                 // If he is, send back all available rooms
                 var availableRooms = RoomList.Values.Where(r => r.IsVisible && !r.HasStarted).ToList();

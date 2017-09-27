@@ -111,16 +111,9 @@ namespace ChatPlugin
             // Friend Request
             if (message.Subject == FriendRequest)
             {
-                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client))
-                {
-                    // If player isn't logged in -> return error 1
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)1);
-                    client.SendMessage(new TagSubjectMessage(FriendsTag, RequestFailed, writer), SendMode.Reliable);
-
-                    WriteEvent("FriendRequest failed. Player wasn't logged in.", LogType.Warning);
+                // If player isn't logged in -> return error 1
+                if (!_loginPlugin.PlayerLoggedIn(client, FriendsTag, RequestFailed, "Friend request failed."))
                     return;
-                }
 
                 var senderName = _loginPlugin.UsersLoggedIn[client];
                 string receiver;
@@ -131,13 +124,8 @@ namespace ChatPlugin
                     receiver = reader.ReadString();
                 }
                 catch (Exception ex)
-                {
-                    WriteEvent("Invalid Friend Request received: " + ex.Message + " - " + ex.StackTrace, LogType.Warning);
-
-                    // Return Error 0 for Invalid Data Packages Recieved
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)0);
-                    client.SendMessage(new TagSubjectMessage(FriendsTag, RequestFailed, writer), SendMode.Reliable);
+                { // Return Error 0 for Invalid Data Packages Recieved
+                    _loginPlugin.InvalidData(client, FriendsTag, RequestFailed, ex, "Friend Request Failed! ");
                     return;
                 }
 
@@ -168,28 +156,17 @@ namespace ChatPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Database Error: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
-
                     // Return Error 2 for Database error
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)2);
-                    client.SendMessage(new TagSubjectMessage(FriendsTag, RequestFailed, writer), SendMode.Reliable);
+                    _dbConnector.DatabaseError(client, FriendsTag, RequestFailed, ex);
                 }
             }
 
             // Friend Request Declined
             if (message.Subject == DeclineRequest)
             {
-                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client))
-                {
-                    // If player isn't logged in -> return error 1
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)1);
-                    client.SendMessage(new TagSubjectMessage(FriendsTag, DeclineRequestFailed, writer), SendMode.Reliable);
-                    
-                    WriteEvent("DeclineFriendRequest failed. Player wasn't logged in.", LogType.Warning);
+                // If player isn't logged in -> return error 1
+                if (!_loginPlugin.PlayerLoggedIn(client, FriendsTag, DeclineRequestFailed, "DeclineFriendRequest failed."))
                     return;
-                }
 
                 var senderName = _loginPlugin.UsersLoggedIn[client];
                 string receiver;
@@ -201,12 +178,8 @@ namespace ChatPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Invalid Decline Friend Request data received: " + ex.Message + " - " + ex.StackTrace, LogType.Warning);
-
                     // Return Error 0 for Invalid Data Packages Recieved
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)0);
-                    client.SendMessage(new TagSubjectMessage(FriendsTag, DeclineRequestFailed, writer), SendMode.Reliable);
+                    _loginPlugin.InvalidData(client, FriendsTag, DeclineRequestFailed, ex, "Decline Request Failed!");
                     return;
                 }
 
@@ -237,28 +210,17 @@ namespace ChatPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Database Error: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
-
                     // Return Error 2 for Database error
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)2);
-                    client.SendMessage(new TagSubjectMessage(FriendsTag, DeclineRequestFailed, writer), SendMode.Reliable);
+                    _dbConnector.DatabaseError(client, FriendsTag, DeclineRequestFailed, ex);
                 }
             }
 
             // Friend Request Accepted
             if (message.Subject == AcceptRequest)
             {
-                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client))
-                {
-                    // If player isn't logged in -> return error 1
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)1);
-                    client.SendMessage(new TagSubjectMessage(FriendsTag, AcceptRequestFailed, writer), SendMode.Reliable);
-
-                    WriteEvent("AcceptFriendRequest failed. Player wasn't logged in.", LogType.Warning);
+                // If player isn't logged in -> return error 1
+                if (!_loginPlugin.PlayerLoggedIn(client, FriendsTag, AcceptRequestFailed, "AcceptFriendRequest failed."))
                     return;
-                }
 
                 var senderName = _loginPlugin.UsersLoggedIn[client];
                 string receiver;
@@ -270,12 +232,8 @@ namespace ChatPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Invalid Accept Friend Request data received: " + ex.Message + " - " + ex.StackTrace, LogType.Warning);
-
                     // Return Error 0 for Invalid Data Packages Recieved
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)0);
-                    client.SendMessage(new TagSubjectMessage(FriendsTag, AcceptRequestFailed, writer), SendMode.Reliable);
+                    _loginPlugin.InvalidData(client, FriendsTag, AcceptRequestFailed, ex, "Accept Request Failed!");
                     return;
                 }
 
@@ -307,30 +265,18 @@ namespace ChatPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Database Error: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
-
                     // Return Error 2 for Database error
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)2);
-                    client.SendMessage(new TagSubjectMessage(FriendsTag, AcceptRequestFailed, writer), SendMode.Reliable);
+                    _dbConnector.DatabaseError(client, FriendsTag, AcceptRequestFailed, ex);
                 }
             }
 
             // Remove Friend
             if (message.Subject == RemoveFriend)
             {
-                if (!_loginPlugin.UsersLoggedIn.ContainsKey(client))
-                {
-                    // If player isn't logged in -> return error 1
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)1);
-                    client.SendMessage(new TagSubjectMessage(FriendsTag, RemoveFriendFailed, writer), SendMode.Reliable);
-
-                    WriteEvent("RemoveFriend failed. Player wasn't logged in.", LogType.Warning);
+                // If player isn't logged in -> return error 1
+                if (!_loginPlugin.PlayerLoggedIn(client, FriendsTag, RemoveFriendFailed, "RemoveFriend failed."))
                     return;
-                }
-
-
+                
                 var senderName = _loginPlugin.UsersLoggedIn[client];
                 string receiver;
 
@@ -341,12 +287,8 @@ namespace ChatPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Invalid Remove Friend data received: " + ex.Message + " - " + ex.StackTrace, LogType.Warning);
-
                     // Return Error 0 for Invalid Data Packages Recieved
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)0);
-                    client.SendMessage(new TagSubjectMessage(FriendsTag, RemoveFriendFailed, writer), SendMode.Reliable);
+                    _loginPlugin.InvalidData(client, FriendsTag, RemoveFriendFailed, ex, "Remove Friend Failed!");
                     return;
                 }
 
@@ -377,12 +319,8 @@ namespace ChatPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Database Error: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
-
                     // Return Error 2 for Database error
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)2);
-                    client.SendMessage(new TagSubjectMessage(FriendsTag, RemoveFriendFailed, writer), SendMode.Reliable);
+                    _dbConnector.DatabaseError(client, FriendsTag, RemoveFriendFailed, ex);
                 }
             }
         }
@@ -422,7 +360,7 @@ namespace ChatPlugin
         }
 
         #endregion
-        
+
         #region Commands
 
         private void AddFriendCommand(object sender, CommandEventArgs e)

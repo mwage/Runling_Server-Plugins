@@ -39,7 +39,7 @@ namespace LoginPlugin
         private const ushort AddUserSuccess = 7;
         private const ushort AddUserFailed = 8;
 
-        // Connects the clients Global ID with his username
+        // Connects the Client with his Username
         public Dictionary<Client, string> UsersLoggedIn = new Dictionary<Client, string>();
         private readonly Dictionary<Client, RSAParameters> _keys = new Dictionary<Client, RSAParameters>();
 
@@ -149,12 +149,8 @@ namespace LoginPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Invalid Login data received: " + ex.Message + " - " + ex.StackTrace, LogType.Warning);
-
                     // Return Error 0 for Invalid Data Packages Recieved
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)0);
-                    client.SendMessage(new TagSubjectMessage(LoginTag, LoginFailed, writer), SendMode.Reliable);
+                    InvalidData(client, LoginTag, LoginFailed, ex, "Failed to log in!");
                     return;
                 }
 
@@ -197,12 +193,8 @@ namespace LoginPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Database Error: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
-
                     // Return Error 2 for Database error
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)2);
-                    client.SendMessage(new TagSubjectMessage(LoginTag, LoginFailed, writer), SendMode.Reliable);
+                    _dbConnector.DatabaseError(client, LoginTag, LoginFailed, ex);
                 }
             }
 
@@ -239,12 +231,8 @@ namespace LoginPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Invalid AddUser data received: " + ex.Message + " - " + ex.StackTrace, LogType.Warning);
-
-                    // Return Error 0 for Invalid Data Recieved
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)0);
-                    client.SendMessage(new TagSubjectMessage(LoginTag, AddUserFailed, writer), SendMode.Reliable);
+                    // Return Error 0 for Invalid Data Packages Recieved
+                    InvalidData(client, LoginTag, AddUserFailed, ex, "Failed to add user!");
                     return;
                 }
 
@@ -270,12 +258,8 @@ namespace LoginPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Database Error: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
-
                     // Return Error 2 for Database error
-                    var writer = new DarkRiftWriter();
-                    writer.Write((byte)2);
-                    client.SendMessage(new TagSubjectMessage(LoginTag, AddUserFailed, writer), SendMode.Reliable);
+                    _dbConnector.DatabaseError(client, LoginTag, AddUserFailed, ex);
                 }
             }
         }
@@ -387,6 +371,32 @@ namespace LoginPlugin
                     break;
             }
         }
+        #endregion
+
+        #region ErrorHandling
+
+        public bool PlayerLoggedIn(Client client, byte tag, ushort subject, string error)
+        {
+            if (UsersLoggedIn.ContainsKey(client))
+                return true;
+
+            var writer = new DarkRiftWriter();
+            writer.Write((byte)1);
+            client.SendMessage(new TagSubjectMessage(tag, subject, writer), SendMode.Reliable);
+
+            WriteEvent(error + " Player wasn't logged in.", LogType.Warning);
+            return false;
+        }
+
+        public void InvalidData(Client client, byte tag, ushort subject, Exception e, string error)
+        {
+            var writer = new DarkRiftWriter();
+            writer.Write((byte)0);
+            client.SendMessage(new TagSubjectMessage(tag, subject, writer), SendMode.Reliable);
+
+            WriteEvent(error + " Invalid data received: " + e.Message + " - " + e.StackTrace, LogType.Warning);
+        }
+
         #endregion
     }
 }

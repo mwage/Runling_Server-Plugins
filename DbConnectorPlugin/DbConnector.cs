@@ -75,5 +75,18 @@ namespace DbConnectorPlugin
         {
             Users = _database.GetCollection<User>("users");
         }
+
+        #region ErrorHandling
+
+        public void DatabaseError(Client client, byte tag, ushort subject, Exception e)
+        {
+            WriteEvent("Database Error: " + e.Message + " - " + e.StackTrace, LogType.Error);
+
+            var writer = new DarkRiftWriter();
+            writer.Write((byte)2);
+            client.SendMessage(new TagSubjectMessage(tag, subject, writer), SendMode.Reliable);
+        }
+
+        #endregion
     }
 }

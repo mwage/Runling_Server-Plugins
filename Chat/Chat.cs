@@ -173,18 +173,14 @@ namespace ChatPlugin
 
         private bool CheckPrivateMessage(Client client, Message message, out string receiver, out string content)
         {
-            if (!_loginPlugin.UsersLoggedIn.ContainsKey(client))
+            // If player isn't logged in -> return error 1
+            if (!_loginPlugin.PlayerLoggedIn(client, ChatTag, MessageFailed, "Private Message failed."))
             {
-                // If player isn't logged in -> return error 1
-                var writer = new DarkRiftWriter();
-                writer.Write((byte)1);
-                client.SendMessage(new TagSubjectMessage(ChatTag, MessageFailed, writer), SendMode.Reliable);
-
-                WriteEvent("Send Message failed. Player wasn't logged in.", LogType.Warning);
                 receiver = "";
                 content = "";
                 return false;
             }
+
             try
             {
                 var reader = message.GetReader();
@@ -193,16 +189,12 @@ namespace ChatPlugin
             }
             catch (Exception ex)
             {
-                WriteEvent("Invalid Message data received: " + ex.Message + " - " + ex.StackTrace,
-                    LogType.Warning);
-
                 // Return Error 0 for Invalid Data Packages Recieved
-                var writer = new DarkRiftWriter();
-                writer.Write((byte)0);
-                client.SendMessage(new TagSubjectMessage(ChatTag, MessageFailed, writer), SendMode.Reliable);
+                _loginPlugin.InvalidData(client, ChatTag, MessageFailed, ex, "Send Message failed! ");
                 receiver = "";
                 content = "";
                 return false;
+
             }
 
             if (!_loginPlugin.UsersLoggedIn.ContainsValue(receiver))
@@ -224,18 +216,14 @@ namespace ChatPlugin
 
         private bool CheckGroupMessage(Client client, Message message, out ushort groupId, out string content)
         {
-            if (!_loginPlugin.UsersLoggedIn.ContainsKey(client))
+            // If player isn't logged in -> return error 1
+            if (!_loginPlugin.PlayerLoggedIn(client, ChatTag, MessageFailed, "Group/Room Message failed."))
             {
-                // If player isn't logged in -> return error 1
-                var writer = new DarkRiftWriter();
-                writer.Write((byte)1);
-                client.SendMessage(new TagSubjectMessage(ChatTag, MessageFailed, writer), SendMode.Reliable);
-
-                WriteEvent("Send Message failed. Player wasn't logged in.", LogType.Warning);
                 groupId = 0;
                 content = "";
                 return false;
             }
+
             try
             {
                 var reader = message.GetReader();
@@ -245,13 +233,8 @@ namespace ChatPlugin
             }
             catch (Exception ex)
             {
-                WriteEvent("Invalid Message data received: " + ex.Message + " - " + ex.StackTrace,
-                    LogType.Warning);
-
                 // Return Error 0 for Invalid Data Packages Recieved
-                var writer = new DarkRiftWriter();
-                writer.Write((byte)0);
-                client.SendMessage(new TagSubjectMessage(ChatTag, MessageFailed, writer), SendMode.Reliable);
+                _loginPlugin.InvalidData(client, ChatTag, MessageFailed, ex, "Send Message failed! ");
                 groupId = 0;
                 content = "";
                 return false;
