@@ -16,7 +16,7 @@ namespace ChatPlugin
         public override bool ThreadSafe => false;
 
         // Tag
-        private const byte ChatTag = 1;
+        private const byte ChatTag = 2;
 
         // Subjects
         private const ushort PrivateMessage = 0;

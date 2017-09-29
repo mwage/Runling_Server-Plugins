@@ -1,14 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using DarkRift;
 using DarkRift.Server;
 using DbConnectorPlugin;
-using LoginPlugin;
 using MongoDB.Driver;
 
-namespace ChatPlugin
+namespace LoginPlugin
 {
     public class Friends : Plugin
     {
@@ -22,7 +22,7 @@ namespace ChatPlugin
         };
 
         // Tag
-        private const byte FriendsTag = 2;
+        private const byte FriendsTag = 1;
 
         // Subjects
         private const ushort FriendRequest = 0;
@@ -37,7 +37,10 @@ namespace ChatPlugin
         private const ushort RemoveFriend = 9;
         private const ushort RemoveFriendSuccess = 10;
         private const ushort RemoveFriendFailed = 11;
-
+        private const ushort GetAllFriends = 12;
+        private const ushort GetAllFriendsFailed = 13;
+        private const ushort FriendLoggedIn = 14;
+        private const ushort FriendLoggedOut = 15;
 
         private const string ConfigPath = @"Plugins\Friends.xml";
         private DbConnector _dbConnector;
@@ -131,6 +134,20 @@ namespace ChatPlugin
 
                 try
                 {
+                    if (!_dbConnector.Users.AsQueryable().Any(u => u.Username == receiver))
+                    {
+                        // No user with that name found -> return error 3
+                        var wr = new DarkRiftWriter();
+                        wr.Write((byte) 3);
+                        client.SendMessage(new TagSubjectMessage(FriendsTag, RequestFailed, wr), SendMode.Reliable);
+
+                        if (_debug)
+                        {
+                            WriteEvent("No user named " + receiver + " found!", LogType.Info);
+                        }
+                        return;
+                    }
+
                     // Save the request in the database to both users
                     AddRequests(senderName, receiver);
                     
@@ -321,6 +338,78 @@ namespace ChatPlugin
                 {
                     // Return Error 2 for Database error
                     _dbConnector.DatabaseError(client, FriendsTag, RemoveFriendFailed, ex);
+                }
+            }
+
+            // Get all friends and their status
+            if (message.Subject == GetAllFriends)
+            {
+                // If player isn't logged in -> return error 1
+                if (!_loginPlugin.PlayerLoggedIn(client, FriendsTag, GetAllFriendsFailed, "GetAllFriends failed."))
+                    return;
+
+                var senderName = _loginPlugin.UsersLoggedIn[client];
+
+                try
+                {
+                    var user = _dbConnector.Users.AsQueryable().First(u => u.Username == senderName);
+                    var onlineFriends = new List<string>();
+                    var offlineFriends = new List<string>();
+
+                    var writer = new DarkRiftWriter();
+                    writer.Write(senderName);
+
+                    foreach (var friend in user.Friends)
+                    {
+                        if (_loginPlugin.UsersLoggedIn.ContainsValue(friend))
+                        {
+                            onlineFriends.Add(friend);
+
+                            // let online friends know he logged in
+                            var cl = _loginPlugin.UsersLoggedIn.First(u => u.Value == friend).Key;
+                            cl.SendMessage(new TagSubjectMessage(FriendsTag, FriendLoggedIn, writer),
+                                SendMode.Reliable);
+                        }
+                        else
+                        {
+                            offlineFriends.Add(friend);
+                        }
+                    }
+
+                    var wr = new DarkRiftWriter();
+                    wr.Write(onlineFriends.ToArray());
+                    wr.Write(offlineFriends.ToArray());
+                    wr.Write(user.OpenFriendRequests.ToArray());
+
+                    client.SendMessage(new TagSubjectMessage(FriendsTag, GetAllFriends, wr), SendMode.Reliable);
+
+                    if (_debug)
+                    {
+                        WriteEvent("Got friends for " + senderName, LogType.Info);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Return Error 2 for Database error
+                    _dbConnector.DatabaseError(client, FriendsTag, GetAllFriendsFailed, ex);
+                }
+            }
+        }
+
+        public void LogoutFriend(string username)
+        {
+            var friends = _dbConnector.Users.AsQueryable().First(u => u.Username == username).Friends;
+            var writer = new DarkRiftWriter();
+            writer.Write(username);
+
+            foreach (var friend in friends)
+            {
+                if (_loginPlugin.UsersLoggedIn.ContainsValue(friend))
+                {
+                    // let online friends know he logged out
+                    var cl = _loginPlugin.UsersLoggedIn.First(u => u.Value == friend).Key;
+                    cl.SendMessage(new TagSubjectMessage(FriendsTag, FriendLoggedOut, writer),
+                        SendMode.Reliable);
                 }
             }
         }

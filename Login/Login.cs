@@ -41,10 +41,12 @@ namespace LoginPlugin
 
         // Connects the Client with his Username
         public Dictionary<Client, string> UsersLoggedIn = new Dictionary<Client, string>();
+
         private readonly Dictionary<Client, RSAParameters> _keys = new Dictionary<Client, RSAParameters>();
 
         private const string ConfigPath = @"Plugins\Login.xml";
         private DbConnector _dbConnector;
+        private Friends _friends;
         private bool _allowAddUser = true;
         private bool _debug = true;
 
@@ -93,6 +95,7 @@ namespace LoginPlugin
         private void OnPlayerConnected(object sender, ClientConnectedEventArgs e)
         {
             UsersLoggedIn[e.Client] = "";
+
             _keys[e.Client] = Encryption.GenerateKeys(out var publicKey);
 
             var writer = new DarkRiftWriter();
@@ -106,6 +109,7 @@ namespace LoginPlugin
             if (_dbConnector == null)
             {
                 _dbConnector = PluginManager.GetPluginByType<DbConnector>();
+                _friends = PluginManager.GetPluginByType<Friends>();
             }
         }
 
@@ -113,7 +117,9 @@ namespace LoginPlugin
         {
             if (UsersLoggedIn.ContainsKey(e.Client))
             {
+                var username = UsersLoggedIn[e.Client];
                 UsersLoggedIn.Remove(e.Client);
+                _friends.LogoutFriend(username);
             }
             if (_keys.ContainsKey(e.Client))
             {
@@ -201,6 +207,7 @@ namespace LoginPlugin
             // Logout Request
             if (message.Subject == LogoutUser)
             {
+                var username = UsersLoggedIn[client];
                 UsersLoggedIn[client] = "";
 
                 if (_debug)
@@ -209,6 +216,7 @@ namespace LoginPlugin
                 }
 
                 client.SendMessage(new TagSubjectMessage(LoginTag, LogoutSuccess, new DarkRiftWriter()), SendMode.Reliable);
+                _friends.LogoutFriend(username);
             }
 
             // Registration Request
