@@ -51,7 +51,6 @@ namespace LoginPlugin
         {
             LoadConfig();
             ClientManager.ClientConnected += OnPlayerConnected;
-            ClientManager.ClientDisconnected += OnPlayerDisconnected;
         }
 
         private void LoadConfig()
@@ -100,10 +99,6 @@ namespace LoginPlugin
             }
         }
 
-        private void OnPlayerDisconnected(object sender, ClientDisconnectedEventArgs e)
-        {
-        }
-
         private void OnMessageReceived(object sender, MessageReceivedEventArgs e)
         {
             if (!(e.Message is TagSubjectMessage message) || message.Tag != FriendsTag)
@@ -134,7 +129,8 @@ namespace LoginPlugin
 
                 try
                 {
-                    if (!_dbConnector.Users.AsQueryable().Any(u => u.Username == receiver))
+                    var receiverUser = _dbConnector.Users.AsQueryable().FirstOrDefault(u => u.Username == receiver);
+                    if (receiverUser == null)
                     {
                         // No user with that name found -> return error 3
                         var wr = new DarkRiftWriter();
@@ -146,6 +142,20 @@ namespace LoginPlugin
                             WriteEvent("No user named " + receiver + " found!", LogType.Info);
                         }
                         return;
+                    }
+
+                    if (receiverUser.Friends.Contains(senderName) || receiverUser.OpenFriendRequests.Contains(senderName))
+                    {
+                        // Users are already friends or have an open request -> return error 4
+                        var wr = new DarkRiftWriter();
+                        wr.Write((byte)4);
+                        client.SendMessage(new TagSubjectMessage(FriendsTag, RequestFailed, wr), SendMode.Reliable);
+
+                        if (_debug)
+                        {
+                            WriteEvent("Request failed, " + senderName + " and " + receiver + 
+                                " were already friends or had an open friend request!", LogType.Info);
+                        }
                     }
 
                     // Save the request in the database to both users
@@ -222,7 +232,7 @@ namespace LoginPlugin
                         var wr = new DarkRiftWriter();
                         wr.Write(senderName);
 
-                        receivingClient.SendMessage(new TagSubjectMessage(FriendsTag, DeclineRequest, wr), SendMode.Reliable);
+                        receivingClient.SendMessage(new TagSubjectMessage(FriendsTag, DeclineRequestSuccess, wr), SendMode.Reliable);
                     }
                 }
                 catch (Exception ex)
@@ -259,9 +269,12 @@ namespace LoginPlugin
                     // Delete the request from the database for both users and add their names to their friend list
                     RemoveRequests(senderName, receiver);
                     AddFriends(senderName, receiver);
-                    
+
+                    var receiverOnline = _loginPlugin.UsersLoggedIn.ContainsValue(receiver);
+
                     var writer = new DarkRiftWriter();
                     writer.Write(receiver);
+                    writer.Write(receiverOnline);
 
                     client.SendMessage(new TagSubjectMessage(FriendsTag, AcceptRequestSuccess, writer), SendMode.Reliable);
 
@@ -271,13 +284,14 @@ namespace LoginPlugin
                     }
 
                     // If Receiver is currently logged in, let him know right away
-                    if (_loginPlugin.UsersLoggedIn.ContainsValue(receiver))
+                    if (receiverOnline)
                     {
                         var receivingClient = _loginPlugin.UsersLoggedIn.FirstOrDefault(u => u.Value == receiver).Key;
                         var wr = new DarkRiftWriter();
                         wr.Write(senderName);
+                        wr.Write(true);
 
-                        receivingClient.SendMessage(new TagSubjectMessage(FriendsTag, AcceptRequest, wr), SendMode.Reliable);
+                        receivingClient.SendMessage(new TagSubjectMessage(FriendsTag, AcceptRequestSuccess, wr), SendMode.Reliable);
                     }
                 }
                 catch (Exception ex)
