@@ -10,6 +10,7 @@ namespace DbConnectorPlugin
         public string Password { get; }
         public List<string> Friends;
         public List<string> OpenFriendRequests;
+        public List<string> UnansweredFriendRequests;
 
         public User(string username, string password)
         {
@@ -17,6 +18,7 @@ namespace DbConnectorPlugin
             Password = password;
             Friends = new List<string>();
             OpenFriendRequests = new List<string>();
+            UnansweredFriendRequests = new List<string>();
         }
     }
 }
