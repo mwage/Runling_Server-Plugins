@@ -20,9 +20,10 @@ namespace ChatPlugin
 
         // Subjects
         private const ushort PrivateMessage = 0;
-        private const ushort RoomMessage = 1;
-        private const ushort GroupMessage = 2;
-        private const ushort MessageFailed = 3;
+        private const ushort SuccessfulPrivateMessage = 1;
+        private const ushort RoomMessage = 2;
+        private const ushort GroupMessage = 3;
+        private const ushort MessageFailed = 4;
 
         private const string ConfigPath = @"Plugins\Chat.xml";
         private Login _loginPlugin;
@@ -85,6 +86,10 @@ namespace ChatPlugin
 
         private void OnPlayerDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
+            foreach (var chatGroup in ChatGroups.Values)
+            {
+                chatGroup.RemovePlayer(e.Client);
+            }
         }
 
         private void OnMessageReceived(object sender, MessageReceivedEventArgs e)
@@ -107,8 +112,11 @@ namespace ChatPlugin
                 writer.Write(senderName);
                 writer.Write(receiver);
                 writer.Write(content);
+                client.SendMessage(new TagSubjectMessage(ChatTag, SuccessfulPrivateMessage, writer), SendMode.Reliable);
 
-                client.SendMessage(new TagSubjectMessage(ChatTag, PrivateMessage, writer), SendMode.Reliable);
+                writer = new DarkRiftWriter();
+                writer.Write(senderName);
+                writer.Write(content);
                 receivingClient.SendMessage(new TagSubjectMessage(ChatTag, PrivateMessage, writer), SendMode.Reliable);
             }
             // Room Message
@@ -148,6 +156,7 @@ namespace ChatPlugin
                     return;
 
                 var writer = new DarkRiftWriter();
+                writer.Write(groupId);
                 writer.Write(senderName);
                 writer.Write(content);
 
@@ -164,7 +173,7 @@ namespace ChatPlugin
 
                 foreach (var cl in ChatGroups[groupId].Clients)
                 {
-                    cl.SendMessage(new TagSubjectMessage(ChatTag, RoomMessage, writer), SendMode.Reliable);
+                    cl.SendMessage(new TagSubjectMessage(ChatTag, GroupMessage, writer), SendMode.Reliable);
                 }
             }
         }
