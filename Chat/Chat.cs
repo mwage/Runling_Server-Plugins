@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -76,11 +77,13 @@ namespace ChatPlugin
         {
             e.Client.MessageReceived += OnMessageReceived;
 
-            // If you have DR2 Pro, use the Plugin.Loaded() method to get the DbConnector Plugin instead
+            // If you have DR2 Pro, use the Plugin.Loaded() method instead
             if (_loginPlugin == null)
             {
                 _loginPlugin = PluginManager.GetPluginByType<Login>();
                 _roomSystem = PluginManager.GetPluginByType<RoomSystem>();
+
+                ChatGroups[0] = new ChatGroup(0, "General");
             }
         }
 
@@ -108,6 +111,7 @@ namespace ChatPlugin
                     return;
                 
                 var receivingClient = _loginPlugin.UsersLoggedIn.First(u => u.Value == receiver).Key;
+
                 var writer = new DarkRiftWriter();
                 writer.Write(senderName);
                 writer.Write(receiver);
@@ -155,11 +159,6 @@ namespace ChatPlugin
                 if (!CheckGroupMessage(client, message, out var groupId, out var content))
                     return;
 
-                var writer = new DarkRiftWriter();
-                writer.Write(groupId);
-                writer.Write(senderName);
-                writer.Write(content);
-
                 if (!ChatGroups[groupId].Clients.Contains(client))
                 {
                     // If player isn't actually in the chatgroup -> return error 2
@@ -170,6 +169,15 @@ namespace ChatPlugin
                     WriteEvent("Send Message failed. Player wasn't part of the chat group.", LogType.Warning);
                     return;
                 }
+
+                var writer = new DarkRiftWriter();
+                writer.Write(groupId);
+                writer.Write(senderName);
+                writer.Write(content);
+
+//                 TODO: Get ChatGroup Name
+
+                writer.Write("ChannelName");
 
                 foreach (var cl in ChatGroups[groupId].Clients)
                 {
