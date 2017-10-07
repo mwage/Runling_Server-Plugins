@@ -41,7 +41,6 @@ namespace ChatPlugin
         {
             LoadConfig();
             ClientManager.ClientConnected += OnPlayerConnected;
-            ClientManager.ClientDisconnected += OnPlayerDisconnected;
         }
 
         private void LoadConfig()
@@ -89,14 +88,6 @@ namespace ChatPlugin
             }
 
             e.Client.MessageReceived += OnMessageReceived;
-        }
-
-        private void OnPlayerDisconnected(object sender, ClientDisconnectedEventArgs e)
-        {
-            foreach (var chatGroup in ChatGroups.Values)
-            {
-                chatGroup.RemovePlayer(_loginPlugin.UsersLoggedIn[e.Client]);
-            }
         }
 
         private void OnMessageReceived(object sender, MessageReceivedEventArgs e)

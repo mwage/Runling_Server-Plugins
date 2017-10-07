@@ -220,6 +220,7 @@ namespace LoginPlugin
 
                     var writer = new DarkRiftWriter();
                     writer.Write(receiver);
+                    writer.Write(true);
 
                     client.SendMessage(new TagSubjectMessage(FriendsTag, DeclineRequestSuccess, writer), SendMode.Reliable);
 
@@ -234,6 +235,7 @@ namespace LoginPlugin
                         var receivingClient = _loginPlugin.UsersLoggedIn.FirstOrDefault(u => u.Value == receiver).Key;
                         var wr = new DarkRiftWriter();
                         wr.Write(senderName);
+                        wr.Write(false);
 
                         receivingClient.SendMessage(new TagSubjectMessage(FriendsTag, DeclineRequestSuccess, wr), SendMode.Reliable);
                     }
@@ -333,6 +335,7 @@ namespace LoginPlugin
 
                     var writer = new DarkRiftWriter();
                     writer.Write(receiver);
+                    writer.Write(true);
 
                     client.SendMessage(new TagSubjectMessage(FriendsTag, RemoveFriendSuccess, writer), SendMode.Reliable);
 
@@ -347,6 +350,7 @@ namespace LoginPlugin
                         var receivingClient = _loginPlugin.UsersLoggedIn.FirstOrDefault(u => u.Value == receiver).Key;
                         var wr = new DarkRiftWriter();
                         wr.Write(senderName);
+                        wr.Write(false);
 
                         receivingClient.SendMessage(new TagSubjectMessage(FriendsTag, RemoveFriendSuccess, wr), SendMode.Reliable);
                     }
