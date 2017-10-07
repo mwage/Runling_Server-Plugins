@@ -89,14 +89,16 @@ namespace LoginPlugin
 
         private void OnPlayerConnected(object sender, ClientConnectedEventArgs e)
         {
-            e.Client.MessageReceived += OnMessageReceived;
-
             // If you have DR2 Pro, use the Plugin.Loaded() method to get the DbConnector Plugin instead
             if (_dbConnector == null)
             {
                 _dbConnector = PluginManager.GetPluginByType<DbConnector>();
                 _loginPlugin = PluginManager.GetPluginByType<Login>();
+
+                _loginPlugin.onLogout += LogoutFriend;
             }
+
+            e.Client.MessageReceived += OnMessageReceived;
         }
 
         private void OnMessageReceived(object sender, MessageReceivedEventArgs e)

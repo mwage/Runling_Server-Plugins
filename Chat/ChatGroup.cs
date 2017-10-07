@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using DarkRift;
 using DarkRift.Server;
 
@@ -8,8 +9,7 @@ namespace ChatPlugin
     {
         public ushort Id { get; }
         public string Name { get; }
-        public List<Client> Clients = new List<Client>();
-        
+        public Dictionary<string, Client> Users;
 
         public ChatGroup(ushort id, string name)
         {
@@ -17,28 +17,25 @@ namespace ChatPlugin
             Name = name;
         }
 
-        internal bool AddPlayer(Client client)
+        internal bool AddPlayer(string username, Client client)
         {
-            if (Clients.Contains(client))
+            if (Users.ContainsKey(username))
                 return false;
 
-            Clients.Add(client);
+            Users[username] = client;
             return true;
         }
 
-        internal bool RemovePlayer(Client client)
+        internal void RemovePlayer(string username)
         {
-            if (!Clients.Contains(client))
-                return false;
-
-            Clients.Remove(client);
-            return true;
+            Users.Remove(username);
         }
 
         public void Serialize(SerializeEvent e)
         {
             e.Writer.Write(Id);
             e.Writer.Write(Name);
+            e.Writer.Write(Users.Keys.ToArray());
         }
 
         public void Deserialize(DeserializeEvent e)

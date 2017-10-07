@@ -46,9 +46,12 @@ namespace LoginPlugin
 
         private const string ConfigPath = @"Plugins\Login.xml";
         private DbConnector _dbConnector;
-        private Friends _friends;
         private bool _allowAddUser = true;
         private bool _debug = true;
+
+        public delegate void LogoutEventHandler(string username);
+
+        public event LogoutEventHandler onLogout;
 
         public Login(PluginLoadData pluginLoadData) : base(pluginLoadData)
         {
@@ -94,6 +97,12 @@ namespace LoginPlugin
 
         private void OnPlayerConnected(object sender, ClientConnectedEventArgs e)
         {
+            // If you have DR2 Pro, use the Plugin.Loaded() method to get the DbConnector Plugin instead
+            if (_dbConnector == null)
+            {
+                _dbConnector = PluginManager.GetPluginByType<DbConnector>();
+            }
+
             UsersLoggedIn[e.Client] = "";
 
             _keys[e.Client] = Encryption.GenerateKeys(out var publicKey);
@@ -104,13 +113,6 @@ namespace LoginPlugin
 
             e.Client.SendMessage(new TagSubjectMessage(LoginTag, Keys, writer), SendMode.Reliable);
             e.Client.MessageReceived += OnMessageReceived;
-
-            // If you have DR2 Pro, use the Plugin.Loaded() method to get the DbConnector Plugin instead
-            if (_dbConnector == null)
-            {
-                _dbConnector = PluginManager.GetPluginByType<DbConnector>();
-                _friends = PluginManager.GetPluginByType<Friends>();
-            }
         }
 
         private void OnPlayerDisconnected(object sender, ClientDisconnectedEventArgs e)
@@ -119,7 +121,7 @@ namespace LoginPlugin
             {
                 var username = UsersLoggedIn[e.Client];
                 UsersLoggedIn.Remove(e.Client);
-                _friends.LogoutFriend(username);
+                onLogout?.Invoke(username);
             }
             if (_keys.ContainsKey(e.Client))
             {
@@ -216,7 +218,7 @@ namespace LoginPlugin
                 }
 
                 client.SendMessage(new TagSubjectMessage(LoginTag, LogoutSuccess, new DarkRiftWriter()), SendMode.Reliable);
-                _friends.LogoutFriend(username);
+                onLogout?.Invoke(username);
             }
 
             // Registration Request

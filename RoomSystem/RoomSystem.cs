@@ -83,12 +83,13 @@ namespace RoomSystemPlugin
 
         private void OnPlayerConnected(object sender, ClientConnectedEventArgs e)
         {
-            e.Client.MessageReceived += OnMessageReceived;
-
+            // If you have DR2 Pro, use the Plugin.Loaded() method instead
             if (_loginPlugin == null)
             {
                 _loginPlugin = PluginManager.GetPluginByType<Login>();
             }
+
+            e.Client.MessageReceived += OnMessageReceived;
         }
 
         private void OnPlayerDisconnected(object sender, ClientDisconnectedEventArgs e)
