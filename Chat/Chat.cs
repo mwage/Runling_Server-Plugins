@@ -236,6 +236,11 @@ namespace ChatPlugin
                     cl.SendMessage(new TagSubjectMessage(ChatTag, GroupMessage, writer), SendMode.Reliable);
                 }
             }
+            // Join Chatgroup
+            else if (message.Subject == JoinGroup)
+            {
+                
+            }
         }
 
         private void RemovePlayerFromChatGroups(string username)

@@ -195,7 +195,7 @@ namespace RoomSystemPlugin
                 if (_playersInRooms.ContainsKey(client.GlobalID))
                 {
                     var writer = new DarkRiftWriter();
-                    writer.Write((byte) 1);
+                    writer.Write((byte) 2);
 
                     client.SendMessage(new TagSubjectMessage(RoomTag, JoinFailed, writer), SendMode.Reliable);
 
@@ -368,6 +368,7 @@ namespace RoomSystemPlugin
                 return;
 
             var room = _playersInRooms[id];
+            var leaverName = room.PlayerList.FirstOrDefault(p => p.Id == client.GlobalID)?.Name;
             _playersInRooms.Remove(id);
 
             if (room.RemovePlayer(client))
@@ -396,6 +397,7 @@ namespace RoomSystemPlugin
                     var writer = new DarkRiftWriter();
                     writer.Write(id);
                     writer.Write(newHost.Id);
+                    writer.Write(leaverName);
 
                     foreach (var cl in room.Clients)
                     {
