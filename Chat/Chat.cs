@@ -17,7 +17,7 @@ namespace ChatPlugin
 
         public override Command[] Commands => new[]
         {
-            new Command("Chatgroups", "Shows all chatgroups [Chatgroups username(optional]", "", GetChatGroupsCommand)
+            new Command("groups", "Shows all chatgroups [groups username(optional]", "", GetChatGroupsCommand)
         };
 
         // Tag
@@ -206,13 +206,13 @@ namespace ChatPlugin
             {
                 var senderName = _loginPlugin.UsersLoggedIn[client];
 
-                string channel;
+                string groupName;
                 string content;
 
                 try
                 {
                     var reader = message.GetReader();
-                    channel = reader.ReadString();
+                    groupName = reader.ReadString();
                     content = reader.ReadString();
                 }
                 catch (Exception ex)
@@ -222,7 +222,7 @@ namespace ChatPlugin
                     return;
                 }
 
-                if (!ChatGroups[channel].Users.Values.Contains(client))
+                if (!ChatGroups[groupName].Users.Values.Contains(client))
                 {
                     // If player isn't actually in the chatgroup -> return error 2
                     var wr = new DarkRiftWriter();
@@ -234,11 +234,11 @@ namespace ChatPlugin
                 }
 
                 var writer = new DarkRiftWriter();
-                writer.Write(channel);
+                writer.Write(groupName);
                 writer.Write(senderName);
                 writer.Write(content);
 
-                foreach (var cl in ChatGroups[channel].Users.Values)
+                foreach (var cl in ChatGroups[groupName].Users.Values)
                 {
                     cl.SendMessage(new TagSubjectMessage(ChatTag, GroupMessage, writer), SendMode.Reliable);
                 }
@@ -327,12 +327,13 @@ namespace ChatPlugin
                 }
 
                 // Remove chatgroup from the players groups
-                var groupsOfPlayer = ChatGroupsOfPlayer[playerName];
-                groupsOfPlayer?.Remove(chatGroup);
-
-                if (groupsOfPlayer?.Count == 0)
+                if (ChatGroupsOfPlayer[playerName].Count == 0)
                 {
                     ChatGroupsOfPlayer.Remove(playerName);
+                }
+                else
+                {
+                    ChatGroupsOfPlayer[playerName].Remove(chatGroup);
                 }
                 
                 var writer = new DarkRiftWriter();
