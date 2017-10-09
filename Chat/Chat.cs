@@ -267,7 +267,16 @@ namespace ChatPlugin
 
                 // Creat chatgroup if necessary and add player to it
                 var chatGroup = ChatGroups.Values.FirstOrDefault(cG => cG.Name == groupName) ?? new ChatGroup(groupName);
-                chatGroup.AddPlayer(playerName, client);
+
+                if (!chatGroup.AddPlayer(playerName, client))
+                {
+                    // Already in Chatgroup -> return error 3
+                    var wr = new DarkRiftWriter();
+                    wr.Write((byte)3);
+
+                    client.SendMessage(new TagSubjectMessage(ChatTag, JoinGroupFailed, wr), SendMode.Reliable);
+                    return;
+                }
                 ChatGroups[groupName] = chatGroup;
                 if (!ChatGroupsOfPlayer.ContainsKey(playerName))
                 {
