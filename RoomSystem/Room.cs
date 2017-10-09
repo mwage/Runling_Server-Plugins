@@ -27,7 +27,6 @@ namespace RoomSystemPlugin
 
         internal bool AddPlayer(Player player, Client client)
         {
-
             if (PlayerList.Count >= MaxPlayers || HasStarted)
                 return false;
 

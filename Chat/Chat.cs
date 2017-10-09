@@ -15,6 +15,11 @@ namespace ChatPlugin
         public override Version Version => new Version(1,0,0);
         public override bool ThreadSafe => false;
 
+        public override Command[] Commands => new[]
+        {
+            new Command("Chatgroups", "Shows all chatgroups [Chatgroups username(optional]", "", GetChatGroupsCommand)
+        };
+
         // Tag
         private const byte ChatTag = 2;
 
@@ -28,13 +33,15 @@ namespace ChatPlugin
         private const ushort JoinGroupFailed = 6;
         private const ushort LeaveGroup = 7;
         private const ushort LeaveGroupFailed = 8;
+        private const ushort GetActiveGroups = 9;
+        private const ushort GetActiveGroupsFailed = 10;
 
         private const string ConfigPath = @"Plugins\Chat.xml";
         private Login _loginPlugin;
         private RoomSystem _roomSystem;
         private bool _debug = true;
 
-        public Dictionary<ushort, ChatGroup> ChatGroups = new Dictionary<ushort, ChatGroup>();
+        public Dictionary<string, ChatGroup> ChatGroups = new Dictionary<string, ChatGroup>();
         public Dictionary<string, List<ChatGroup>> ChatGroupsOfPlayer = new Dictionary<string, List<ChatGroup>>();
 
         public Chat(PluginLoadData pluginLoadData) : base(pluginLoadData)
@@ -199,13 +206,13 @@ namespace ChatPlugin
             {
                 var senderName = _loginPlugin.UsersLoggedIn[client];
 
-                ushort groupId;
+                string channel;
                 string content;
 
                 try
                 {
                     var reader = message.GetReader();
-                    groupId = reader.ReadUInt16();
+                    channel = reader.ReadString();
                     content = reader.ReadString();
                 }
                 catch (Exception ex)
@@ -215,7 +222,7 @@ namespace ChatPlugin
                     return;
                 }
 
-                if (!ChatGroups[groupId].Users.Values.Contains(client))
+                if (!ChatGroups[channel].Users.Values.Contains(client))
                 {
                     // If player isn't actually in the chatgroup -> return error 2
                     var wr = new DarkRiftWriter();
@@ -227,19 +234,131 @@ namespace ChatPlugin
                 }
 
                 var writer = new DarkRiftWriter();
-                writer.Write(groupId);
+                writer.Write(channel);
                 writer.Write(senderName);
                 writer.Write(content);
 
-                foreach (var cl in ChatGroups[groupId].Users.Values)
+                foreach (var cl in ChatGroups[channel].Users.Values)
                 {
                     cl.SendMessage(new TagSubjectMessage(ChatTag, GroupMessage, writer), SendMode.Reliable);
                 }
             }
             // Join Chatgroup
             else if (message.Subject == JoinGroup)
-            {
+            {                
+                // If player isn't logged in -> return error 1
+                if (!_loginPlugin.PlayerLoggedIn(client, ChatTag, JoinGroupFailed, "Join ChatGroup failed."))
+                    return;
+
+                var playerName = _loginPlugin.UsersLoggedIn[client];
+                string groupName;
+
+                try
+                {
+                    var reader = message.GetReader();
+                    groupName = reader.ReadString();
+                }
+                catch (Exception ex)
+                {
+                    // Return Error 0 for Invalid Data Packages Recieved
+                    _loginPlugin.InvalidData(client, ChatTag, JoinGroupFailed, ex, "Join Chatgroup failed! ");
+                    return;
+                }
+
+                // Creat chatgroup if necessary and add player to it
+                var chatGroup = ChatGroups.Values.FirstOrDefault(cG => cG.Name == groupName) ?? new ChatGroup(groupName);
+                chatGroup.AddPlayer(playerName, client);
+                ChatGroups[groupName] = chatGroup;
+                if (!ChatGroupsOfPlayer.ContainsKey(playerName))
+                {
+                    ChatGroupsOfPlayer[playerName] = new List<ChatGroup>();
+                }
+                ChatGroupsOfPlayer[playerName].Add(chatGroup);
+
+                var writer = new DarkRiftWriter();
+                writer.Write(chatGroup);
+
+                client.SendMessage(new TagSubjectMessage(ChatTag, JoinGroup, writer), SendMode.Reliable);
                 
+                if (_debug)
+                {
+                    WriteEvent("Player joined ChatGroup: " + groupName, LogType.Info);
+                }
+            }
+            // Leave Chatgroup
+            else if (message.Subject == LeaveGroup)
+            {
+                // If player isn't logged in -> return error 1
+                if (!_loginPlugin.PlayerLoggedIn(client, ChatTag, JoinGroupFailed, "Leave ChatGroup failed."))
+                    return;
+
+                var playerName = _loginPlugin.UsersLoggedIn[client];
+                string groupName;
+
+                try
+                {
+                    var reader = message.GetReader();
+                    groupName = reader.ReadString();
+                }
+                catch (Exception ex)
+                {
+                    // Return Error 0 for Invalid Data Packages Recieved
+                    _loginPlugin.InvalidData(client, ChatTag, JoinGroupFailed, ex, "Leave ChatGroup failed! ");
+                    return;
+                }
+
+                // get chatgroup if necessary and remove player from it
+                var chatGroup = ChatGroups.Values.FirstOrDefault(cG => cG.Name == groupName);
+                if (chatGroup == null)
+                {
+                    // No such Chatgroup -> return error 3
+                    var wr = new DarkRiftWriter();
+                    wr.Write((byte)3);
+
+                    client.SendMessage(new TagSubjectMessage(ChatTag, LeaveGroupFailed, wr), SendMode.Reliable);
+                    return;
+                }
+                chatGroup.RemovePlayer(playerName);
+                
+                // Remove Chatgroup if he was the last player in it
+                if (chatGroup.Users.Count == 0)
+                {
+                    ChatGroups.Remove(groupName);
+                }
+
+                // Remove chatgroup from the players groups
+                var groupsOfPlayer = ChatGroupsOfPlayer[playerName];
+                groupsOfPlayer?.Remove(chatGroup);
+
+                if (groupsOfPlayer?.Count == 0)
+                {
+                    ChatGroupsOfPlayer.Remove(playerName);
+                }
+                
+                var writer = new DarkRiftWriter();
+                writer.Write(groupName);
+
+                client.SendMessage(new TagSubjectMessage(ChatTag, LeaveGroup, writer), SendMode.Reliable);
+
+                if (_debug)
+                {
+                    WriteEvent("Player left ChatGroup: " + groupName, LogType.Info);
+                }
+            }
+            // Get ChatGroup List
+            else if (message.Subject == GetActiveGroups)
+            {
+                // If player isn't logged in -> return error 1
+                if (!_loginPlugin.PlayerLoggedIn(client, ChatTag, GetActiveGroupsFailed, "Get ChatGroups failed."))
+                    return;
+
+                var groupNames = ChatGroups.Values.Select(chatGroup => chatGroup.Name).ToArray();
+
+
+                var writer = new DarkRiftWriter();
+                writer.Write(groupNames);
+
+                client.SendMessage(new TagSubjectMessage(ChatTag, GetActiveGroups, writer), SendMode.Reliable);
             }
         }
 
@@ -250,7 +369,38 @@ namespace ChatPlugin
 
             foreach (var chatGroup in ChatGroupsOfPlayer[username])
             {
-                chatGroup.RemovePlayer(username);
+                ChatGroups[chatGroup.Name].RemovePlayer(username);
+                if (chatGroup.Users.Count == 0)
+                {
+                    ChatGroups.Remove(chatGroup.Name);
+                }
+            }
+            ChatGroupsOfPlayer.Remove(username);
+        }
+
+        private void GetChatGroupsCommand(object sender, CommandEventArgs e)
+        {
+            WriteEvent("Active Chatgroups:", LogType.Info);
+            var chatGroups = ChatGroups.Values.ToList();
+            if (e.Arguments.Length == 0)
+            {
+                foreach (var chatGroup in chatGroups)
+                {
+                    WriteEvent(chatGroup.Name + " - " + chatGroup.Users.Count, LogType.Info);
+                }
+            }
+            else
+            {
+                var username = e.Arguments[0];
+                if (!ChatGroupsOfPlayer.ContainsKey(username))
+                {
+                    WriteEvent(username + " doesn't exist in any chatgroups.", LogType.Info);
+                    return;
+                }
+                foreach (var chatGroup in ChatGroupsOfPlayer[username])
+                {
+                    WriteEvent(chatGroup.Name, LogType.Info);
+                }
             }
         }
     }

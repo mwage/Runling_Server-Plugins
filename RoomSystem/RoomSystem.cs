@@ -13,6 +13,10 @@ namespace RoomSystemPlugin
     {
         public override Version Version => new Version(1, 0, 0);
         public override bool ThreadSafe => false;
+        public override Command[] Commands => new[]
+        {
+            new Command("Rooms", "Shows all rooms", "", GetRoomsCommand)
+        };
 
         // Tag
         private const byte RoomTag = 3;
@@ -414,6 +418,16 @@ namespace RoomSystemPlugin
             else
             {
                 WriteEvent("Tried to remove player who wasn't in the room anymore.", LogType.Warning);
+            }
+        }
+
+        private void GetRoomsCommand(object sender, CommandEventArgs e)
+        {
+            WriteEvent("Active Rooms:", LogType.Info);
+            var rooms = RoomList.Values.ToList();
+            foreach (var room in rooms)
+            {
+                WriteEvent(room.Name + " [" + room.Id + "] - " + room.PlayerList.Count + "/" + room.MaxPlayers, LogType.Info);
             }
         }
     }

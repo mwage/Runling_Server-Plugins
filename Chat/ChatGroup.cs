@@ -7,13 +7,11 @@ namespace ChatPlugin
 {
     public class ChatGroup : IDarkRiftSerializable
     {
-        public ushort Id { get; }
         public string Name { get; }
-        public Dictionary<string, Client> Users;
+        public Dictionary<string, Client> Users = new Dictionary<string, Client>();
 
-        public ChatGroup(ushort id, string name)
+        public ChatGroup(string name)
         {
-            Id = id;
             Name = name;
         }
 
@@ -33,7 +31,6 @@ namespace ChatPlugin
 
         public void Serialize(SerializeEvent e)
         {
-            e.Writer.Write(Id);
             e.Writer.Write(Name);
             e.Writer.Write(Users.Keys.ToArray());
         }
