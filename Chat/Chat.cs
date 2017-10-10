@@ -108,12 +108,11 @@ namespace ChatPlugin
             // Private Message
             if (message.Subject == PrivateMessage)
             {
-                var senderName = _loginPlugin.UsersLoggedIn[client];
-
                 // If player isn't logged in -> return error 1
                 if (!_loginPlugin.PlayerLoggedIn(client, ChatTag, MessageFailed, "Private Message failed."))
                     return;
 
+                var senderName = _loginPlugin.UsersLoggedIn[client];
                 string receiver;
                 string content;
 
@@ -160,12 +159,11 @@ namespace ChatPlugin
             // Room Message
             else if (message.Subject == RoomMessage)
             {
-                var senderName = _loginPlugin.UsersLoggedIn[client];
-
                 // If player isn't logged in -> return error 1
                 if (!_loginPlugin.PlayerLoggedIn(client, ChatTag, MessageFailed, "Group/Room Message failed."))
                     return;
 
+                var senderName = _loginPlugin.UsersLoggedIn[client];
                 ushort roomId;
                 string content;
 
@@ -205,8 +203,11 @@ namespace ChatPlugin
             // ChatGroup Message
             else if (message.Subject == GroupMessage)
             {
-                var senderName = _loginPlugin.UsersLoggedIn[client];
+                // If player isn't logged in -> return error 1
+                if (!_loginPlugin.PlayerLoggedIn(client, ChatTag, MessageFailed, "Group/Room Message failed."))
+                    return;
 
+                var senderName = _loginPlugin.UsersLoggedIn[client];
                 string groupName;
                 string content;
 

@@ -103,7 +103,7 @@ namespace LoginPlugin
                 _dbConnector = PluginManager.GetPluginByType<DbConnector>();
             }
 
-            UsersLoggedIn[e.Client] = "";
+            UsersLoggedIn[e.Client] = null;
 
             _keys[e.Client] = Encryption.GenerateKeys(out var publicKey);
 
@@ -121,7 +121,10 @@ namespace LoginPlugin
             {
                 var username = UsersLoggedIn[e.Client];
                 UsersLoggedIn.Remove(e.Client);
-                onLogout?.Invoke(username);
+                if (username != null)
+                {
+                    onLogout?.Invoke(username);
+                }
             }
             if (_keys.ContainsKey(e.Client))
             {
@@ -140,7 +143,7 @@ namespace LoginPlugin
             if (message.Subject == LoginUser)
             {
                 // If user is already logged in (shouldn't happen though)
-                if (UsersLoggedIn[client] != "")
+                if (UsersLoggedIn[client] != null)
                 {
                     client.SendMessage(new TagSubjectMessage(LoginTag, LoginSuccess, new DarkRiftWriter()), SendMode.Reliable);
                     return;
@@ -210,7 +213,7 @@ namespace LoginPlugin
             if (message.Subject == LogoutUser)
             {
                 var username = UsersLoggedIn[client];
-                UsersLoggedIn[client] = "";
+                UsersLoggedIn[client] = null;
 
                 if (_debug)
                 {
@@ -387,7 +390,7 @@ namespace LoginPlugin
 
         public bool PlayerLoggedIn(Client client, byte tag, ushort subject, string error)
         {
-            if (UsersLoggedIn.ContainsKey(client))
+            if (UsersLoggedIn[client] != null)
                 return true;
 
             var writer = new DarkRiftWriter();
