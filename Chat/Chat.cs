@@ -92,6 +92,7 @@ namespace ChatPlugin
                 _loginPlugin = PluginManager.GetPluginByType<Login>();
                 _roomSystem = PluginManager.GetPluginByType<RoomSystem>();
                 _loginPlugin.onLogout += RemovePlayerFromChatGroups;
+                ChatGroups["General"] = new ChatGroup("General");
             }
 
             e.Client.MessageReceived += OnMessageReceived;
@@ -265,19 +266,24 @@ namespace ChatPlugin
                     return;
                 }
 
-                // Creat chatgroup if necessary and add player to it
-                var chatGroup = ChatGroups.Values.FirstOrDefault(cG => cG.Name == groupName) ?? new ChatGroup(groupName);
+                // Create chatgroup if necessary and add player to it
+                var chatGroup = ChatGroups.FirstOrDefault(x => 
+                    string.Equals(x.Key, groupName, StringComparison.CurrentCultureIgnoreCase)).Value;
+                if (chatGroup == null)
+                {
+                    chatGroup = new ChatGroup(groupName);
+                    ChatGroups[groupName] = chatGroup;
+                }
 
                 if (!chatGroup.AddPlayer(playerName, client))
                 {
-                    // Already in Chatgroup -> return error 3
+                    // Already in Chatgroup -> return error 2
                     var wr = new DarkRiftWriter();
-                    wr.Write((byte)3);
+                    wr.Write((byte)2);
 
                     client.SendMessage(new TagSubjectMessage(ChatTag, JoinGroupFailed, wr), SendMode.Reliable);
                     return;
                 }
-                ChatGroups[groupName] = chatGroup;
                 if (!ChatGroupsOfPlayer.ContainsKey(playerName))
                 {
                     ChatGroupsOfPlayer[playerName] = new List<ChatGroup>();
@@ -317,12 +323,13 @@ namespace ChatPlugin
                 }
 
                 // get chatgroup if necessary and remove player from it
-                var chatGroup = ChatGroups.Values.FirstOrDefault(cG => cG.Name == groupName);
+                var chatGroup = ChatGroups.FirstOrDefault(x => 
+                    string.Equals(x.Key, groupName, StringComparison.CurrentCultureIgnoreCase)).Value;
                 if (chatGroup == null)
                 {
-                    // No such Chatgroup -> return error 3
+                    // No such Chatgroup -> return error 2
                     var wr = new DarkRiftWriter();
-                    wr.Write((byte)3);
+                    wr.Write((byte)2);
 
                     client.SendMessage(new TagSubjectMessage(ChatTag, LeaveGroupFailed, wr), SendMode.Reliable);
                     return;
@@ -330,9 +337,9 @@ namespace ChatPlugin
                 chatGroup.RemovePlayer(playerName);
                 
                 // Remove Chatgroup if he was the last player in it
-                if (chatGroup.Users.Count == 0)
+                if (chatGroup.Users.Count == 0 && chatGroup.Name != "General")
                 {
-                    ChatGroups.Remove(groupName);
+                    ChatGroups.Remove(chatGroup.Name);
                 }
 
                 // Remove chatgroup from the players groups
@@ -346,7 +353,7 @@ namespace ChatPlugin
                 }
                 
                 var writer = new DarkRiftWriter();
-                writer.Write(groupName);
+                writer.Write(chatGroup.Name);
 
                 client.SendMessage(new TagSubjectMessage(ChatTag, LeaveGroup, writer), SendMode.Reliable);
 
@@ -364,7 +371,6 @@ namespace ChatPlugin
 
                 var groupNames = ChatGroups.Values.Select(chatGroup => chatGroup.Name).ToArray();
 
-
                 var writer = new DarkRiftWriter();
                 writer.Write(groupNames);
 
@@ -380,7 +386,7 @@ namespace ChatPlugin
             foreach (var chatGroup in ChatGroupsOfPlayer[username])
             {
                 ChatGroups[chatGroup.Name].RemovePlayer(username);
-                if (chatGroup.Users.Count == 0)
+                if (chatGroup.Users.Count == 0 && chatGroup.Name != "General")
                 {
                     ChatGroups.Remove(chatGroup.Name);
                 }
