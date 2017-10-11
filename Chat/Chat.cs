@@ -129,7 +129,7 @@ namespace ChatPlugin
                     return;
                 }
 
-                if (!_loginPlugin.UsersLoggedIn.ContainsValue(receiver))
+                if (!_loginPlugin.Clients.ContainsKey(receiver))
                 {
                     // If receiver isn't logged in -> return error 3
                     var wr = new DarkRiftWriter();
@@ -143,7 +143,7 @@ namespace ChatPlugin
                     return;
                 }
                 
-                var receivingClient = _loginPlugin.UsersLoggedIn.First(u => u.Value == receiver).Key;
+                var receivingClient = _loginPlugin.Clients[receiver];
 
                 var writer = new DarkRiftWriter();
                 writer.Write(senderName);

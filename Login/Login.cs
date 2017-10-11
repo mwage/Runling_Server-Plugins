@@ -7,7 +7,6 @@ using DarkRift;
 using DarkRift.Server;
 using DbConnectorPlugin;
 using MongoDB.Driver;
-using System.Security.Cryptography;
 
 namespace LoginPlugin
 {
@@ -29,23 +28,23 @@ namespace LoginPlugin
         private const byte LoginTag = 0;
 
         // Subjects
-        private const ushort Keys = 0;
-        private const ushort LoginUser = 1;
-        private const ushort LogoutUser = 2;
-        private const ushort AddUser = 3;
-        private const ushort LoginSuccess = 4;
-        private const ushort LoginFailed = 5;
-        private const ushort LogoutSuccess = 6;
-        private const ushort AddUserSuccess = 7;
-        private const ushort AddUserFailed = 8;
+        private const ushort LoginUser = 0;
+        private const ushort LogoutUser = 1;
+        private const ushort AddUser = 2;
+        private const ushort LoginSuccess = 3;
+        private const ushort LoginFailed = 4;
+        private const ushort LogoutSuccess = 5;
+        private const ushort AddUserSuccess = 6;
+        private const ushort AddUserFailed = 7;
 
         // Connects the Client with his Username
         public Dictionary<Client, string> UsersLoggedIn = new Dictionary<Client, string>();
-
-        private readonly Dictionary<Client, RSAParameters> _keys = new Dictionary<Client, RSAParameters>();
+        public Dictionary<string, Client> Clients = new Dictionary<string, Client>();
 
         private const string ConfigPath = @"Plugins\Login.xml";
+        private const string PrivateKeyPath = @"Plugins\PrivateKey.xml";
         private DbConnector _dbConnector;
+        private string _privateKey;
         private bool _allowAddUser = true;
         private bool _debug = true;
 
@@ -56,6 +55,7 @@ namespace LoginPlugin
         public Login(PluginLoadData pluginLoadData) : base(pluginLoadData)
         {
             LoadConfig();
+            LoadRsaKey();
             ClientManager.ClientConnected += OnPlayerConnected;
             ClientManager.ClientDisconnected += OnPlayerDisconnected;
         }
@@ -95,6 +95,18 @@ namespace LoginPlugin
             }
         }
 
+        private void LoadRsaKey()
+        {
+            try
+            {
+                _privateKey = File.ReadAllText(PrivateKeyPath);
+            }
+            catch (Exception ex)
+            {
+                WriteEvent("Failed to load PrivateKey.xml: " + ex.Message + " - " + ex.StackTrace, LogType.Fatal);
+            }
+        }
+
         private void OnPlayerConnected(object sender, ClientConnectedEventArgs e)
         {
             // If you have DR2 Pro, use the Plugin.Loaded() method to get the DbConnector Plugin instead
@@ -105,13 +117,6 @@ namespace LoginPlugin
 
             UsersLoggedIn[e.Client] = null;
 
-            _keys[e.Client] = Encryption.GenerateKeys(out var publicKey);
-
-            var writer = new DarkRiftWriter();
-            writer.Write(publicKey.Exponent);
-            writer.Write(publicKey.Modulus);
-
-            e.Client.SendMessage(new TagSubjectMessage(LoginTag, Keys, writer), SendMode.Reliable);
             e.Client.MessageReceived += OnMessageReceived;
         }
 
@@ -120,15 +125,12 @@ namespace LoginPlugin
             if (UsersLoggedIn.ContainsKey(e.Client))
             {
                 var username = UsersLoggedIn[e.Client];
+                Clients.Remove(username);
                 UsersLoggedIn.Remove(e.Client);
                 if (username != null)
                 {
                     onLogout?.Invoke(username);
                 }
-            }
-            if (_keys.ContainsKey(e.Client))
-            {
-                _keys.Remove(e.Client);
             }
         }
 
@@ -156,7 +158,7 @@ namespace LoginPlugin
                 {
                     var reader = message.GetReader();
                     username = reader.ReadString();
-                    password = Encryption.Decrypt(reader.ReadBytes(), _keys[client]);
+                    password = Encryption.Decrypt(reader.ReadBytes(), _privateKey);
                 }
                 catch (Exception ex)
                 {
@@ -181,6 +183,7 @@ namespace LoginPlugin
                     if (user != null && BCrypt.Net.BCrypt.Verify(password, user.Password))
                     {
                         UsersLoggedIn[client] = username;
+                        Clients[username] = client;
 
                         client.SendMessage(new TagSubjectMessage(LoginTag, LoginSuccess, new DarkRiftWriter()), SendMode.Reliable);
 
@@ -214,6 +217,10 @@ namespace LoginPlugin
             {
                 var username = UsersLoggedIn[client];
                 UsersLoggedIn[client] = null;
+                if (username != null)
+                {
+                    Clients.Remove(username);
+                }
 
                 if (_debug)
                 {
@@ -239,7 +246,7 @@ namespace LoginPlugin
                     username = reader.ReadString();
                     
                     password = BCrypt.Net.BCrypt.HashPassword(
-                        Encryption.Decrypt(reader.ReadBytes(), _keys[client])
+                        Encryption.Decrypt(reader.ReadBytes(), _privateKey)
                         , 10);
                 }
                 catch (Exception ex)
@@ -296,7 +303,7 @@ namespace LoginPlugin
 
         private void UsersLoggedInCommand(object sender, CommandEventArgs e)
         {
-            WriteEvent(UsersLoggedIn.Count + " Users logged in", LogType.Info);
+            WriteEvent(Clients.Count + " Users logged in", LogType.Info);
         }
 
         private void UsersOnlineCommand(object sender, CommandEventArgs e)

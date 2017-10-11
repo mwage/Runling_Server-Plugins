@@ -175,9 +175,9 @@ namespace LoginPlugin
                     }
 
                     // If Receiver is currently logged in, let him know right away
-                    if (_loginPlugin.UsersLoggedIn.ContainsValue(receiver))
+                    if (_loginPlugin.Clients.ContainsKey(receiver))
                     {
-                        var receivingClient = _loginPlugin.UsersLoggedIn.FirstOrDefault(u => u.Value == receiver).Key;
+                        var receivingClient = _loginPlugin.Clients[receiver];
                         var wr = new DarkRiftWriter();
                         wr.Write(senderName);
 
@@ -230,9 +230,9 @@ namespace LoginPlugin
                     }
 
                     // If Receiver is currently logged in, let him know right away
-                    if (_loginPlugin.UsersLoggedIn.ContainsValue(receiver))
+                    if (_loginPlugin.Clients.ContainsKey(receiver))
                     {
-                        var receivingClient = _loginPlugin.UsersLoggedIn.FirstOrDefault(u => u.Value == receiver).Key;
+                        var receivingClient = _loginPlugin.Clients[receiver];
                         var wr = new DarkRiftWriter();
                         wr.Write(senderName);
                         wr.Write(false);
@@ -275,7 +275,7 @@ namespace LoginPlugin
                     RemoveRequests(senderName, receiver);
                     AddFriends(senderName, receiver);
 
-                    var receiverOnline = _loginPlugin.UsersLoggedIn.ContainsValue(receiver);
+                    var receiverOnline = _loginPlugin.Clients.ContainsKey(receiver);
 
                     var writer = new DarkRiftWriter();
                     writer.Write(receiver);
@@ -291,7 +291,7 @@ namespace LoginPlugin
                     // If Receiver is currently logged in, let him know right away
                     if (receiverOnline)
                     {
-                        var receivingClient = _loginPlugin.UsersLoggedIn.FirstOrDefault(u => u.Value == receiver).Key;
+                        var receivingClient = _loginPlugin.Clients[receiver];
                         var wr = new DarkRiftWriter();
                         wr.Write(senderName);
                         wr.Write(true);
@@ -345,9 +345,9 @@ namespace LoginPlugin
                     }
 
                     // If Receiver is currently logged in, let him know right away
-                    if (_loginPlugin.UsersLoggedIn.ContainsValue(receiver))
+                    if (_loginPlugin.Clients.ContainsKey(receiver))
                     {
-                        var receivingClient = _loginPlugin.UsersLoggedIn.FirstOrDefault(u => u.Value == receiver).Key;
+                        var receivingClient = _loginPlugin.Clients[receiver];
                         var wr = new DarkRiftWriter();
                         wr.Write(senderName);
                         wr.Write(false);
@@ -382,12 +382,12 @@ namespace LoginPlugin
 
                     foreach (var friend in user.Friends)
                     {
-                        if (_loginPlugin.UsersLoggedIn.ContainsValue(friend))
+                        if (_loginPlugin.Clients.ContainsKey(friend))
                         {
                             onlineFriends.Add(friend);
 
                             // let online friends know he logged in
-                            var cl = _loginPlugin.UsersLoggedIn.First(u => u.Value == friend).Key;
+                            var cl = _loginPlugin.Clients[friend];
                             cl.SendMessage(new TagSubjectMessage(FriendsTag, FriendLoggedIn, writer),
                                 SendMode.Reliable);
                         }
@@ -426,10 +426,10 @@ namespace LoginPlugin
 
             foreach (var friend in friends)
             {
-                if (_loginPlugin.UsersLoggedIn.ContainsValue(friend))
+                if (_loginPlugin.Clients.ContainsKey(friend))
                 {
                     // let online friends know he logged out
-                    var cl = _loginPlugin.UsersLoggedIn.First(u => u.Value == friend).Key;
+                    var cl = _loginPlugin.Clients[friend];
                     cl.SendMessage(new TagSubjectMessage(FriendsTag, FriendLoggedOut, writer),
                         SendMode.Reliable);
                 }
