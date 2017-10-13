@@ -20,8 +20,8 @@ namespace LoginPlugin
             new Command("AddUser", "Adds a User to the Database [AddUser name password]", "", AddUserCommand),
             new Command("DelUser", "Deletes a User from the Database [DelUser name]", "", DelUserCommand),
             new Command("LPDebug", "Enables Plugin Debug", "", DebugCommand),
-            new Command("Online", "Logs number of online users", "", UsersLoggedInCommand),
-            new Command("LoggedIn", "Logs number of online users", "", UsersOnlineCommand)
+            new Command("LoggedIn", "Logs number of online users", "", UsersLoggedInCommand),
+            new Command("Online", "Logs number of online users", "", UsersOnlineCommand)
         };
 
         // Tag
@@ -125,10 +125,11 @@ namespace LoginPlugin
             if (UsersLoggedIn.ContainsKey(e.Client))
             {
                 var username = UsersLoggedIn[e.Client];
-                Clients.Remove(username);
                 UsersLoggedIn.Remove(e.Client);
+
                 if (username != null)
                 {
+                    Clients.Remove(username);
                     onLogout?.Invoke(username);
                 }
             }
@@ -303,12 +304,12 @@ namespace LoginPlugin
 
         private void UsersLoggedInCommand(object sender, CommandEventArgs e)
         {
-            WriteEvent(Clients.Count + " Users logged in", LogType.Info);
+            WriteEvent(Clients.Count + " users logged in", LogType.Info);
         }
 
         private void UsersOnlineCommand(object sender, CommandEventArgs e)
         {
-            WriteEvent(ClientManager.GetAllClients().Length + " Users logged in", LogType.Info);
+            WriteEvent(ClientManager.GetAllClients().Length + " users online", LogType.Info);
         }
 
         private void DebugCommand(object sender, CommandEventArgs e)
