@@ -13,7 +13,7 @@ namespace RoomSystemPlugin
         public List<Player> PlayerList = new List<Player>();
         public List<Client> Clients = new List<Client>();
         public byte MaxPlayers => GetMaxPlayers();
-        public bool HasStarted { get; }
+        public bool HasStarted { get; set; }
         public bool IsVisible { get; }
 
         public Room(ushort id, string name, GameType gameType, bool isVisible)
