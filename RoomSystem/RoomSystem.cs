@@ -213,6 +213,7 @@ namespace RoomSystemPlugin
                     return;
                 }
 
+                // Try to join room
                 if (room.AddPlayer(newPlayer, client))
                 {
                     // Generate new color if requested one is taken
@@ -264,7 +265,6 @@ namespace RoomSystemPlugin
                         WriteEvent("User " + client.GlobalID + " couldn't join, since Room " + room.Id + " was either full or had started!", LogType.Info);
                     }
                 }
-                // Try to join room
             }
             
             // Leave Room Request
@@ -384,9 +384,11 @@ namespace RoomSystemPlugin
                 // Start Game - Insert whatever data you need to send to initialize game (f.e. game server connection info)
                 RoomList[roomId].HasStarted = true;
 
-                client.SendMessage(new TagSubjectMessage(RoomTag, StartGameSuccess, new DarkRiftWriter()), SendMode.Reliable);
+                foreach (var cl in RoomList[roomId].Clients)
+                {
+                    cl.SendMessage(new TagSubjectMessage(RoomTag, StartGameSuccess, new DarkRiftWriter()), SendMode.Reliable);
+                }
             }
-
         }
 
         private ushort GenerateRoomId()
