@@ -1,12 +1,12 @@
-﻿using System;
+﻿using DarkRift;
+using DarkRift.Server;
+using DbConnectorPlugin;
+using MongoDB.Driver;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
-using DarkRift;
-using DarkRift.Server;
-using DbConnectorPlugin;
-using MongoDB.Driver;
 
 namespace LoginPlugin
 {
@@ -115,7 +115,7 @@ namespace LoginPlugin
                 if (!_loginPlugin.PlayerLoggedIn(client, FriendsTag, RequestFailed, "Friend request failed."))
                     return;
 
-                var senderName = _loginPlugin.UsersLoggedIn[client];
+                var senderName = _loginPlugin.Users[client];
                 string receiver;
 
                 try
@@ -198,7 +198,7 @@ namespace LoginPlugin
                 if (!_loginPlugin.PlayerLoggedIn(client, FriendsTag, DeclineRequestFailed, "DeclineFriendRequest failed."))
                     return;
 
-                var senderName = _loginPlugin.UsersLoggedIn[client];
+                var senderName = _loginPlugin.Users[client];
                 string receiver;
 
                 try
@@ -254,7 +254,7 @@ namespace LoginPlugin
                 if (!_loginPlugin.PlayerLoggedIn(client, FriendsTag, AcceptRequestFailed, "AcceptFriendRequest failed."))
                     return;
 
-                var senderName = _loginPlugin.UsersLoggedIn[client];
+                var senderName = _loginPlugin.Users[client];
                 string receiver;
 
                 try
@@ -313,7 +313,7 @@ namespace LoginPlugin
                 if (!_loginPlugin.PlayerLoggedIn(client, FriendsTag, RemoveFriendFailed, "RemoveFriend failed."))
                     return;
                 
-                var senderName = _loginPlugin.UsersLoggedIn[client];
+                var senderName = _loginPlugin.Users[client];
                 string receiver;
 
                 try
@@ -369,7 +369,7 @@ namespace LoginPlugin
                 if (!_loginPlugin.PlayerLoggedIn(client, FriendsTag, GetAllFriendsFailed, "GetAllFriends failed."))
                     return;
 
-                var senderName = _loginPlugin.UsersLoggedIn[client];
+                var senderName = _loginPlugin.Users[client];
 
                 try
                 {

@@ -1,14 +1,14 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using DarkRift;
+﻿using DarkRift;
 using DarkRift.Server;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ChatPlugin
 {
     public class ChatGroup : IDarkRiftSerializable
     {
         public string Name { get; }
-        public Dictionary<string, Client> Users = new Dictionary<string, Client>();
+        public Dictionary<string, Client> Users { get; } = new Dictionary<string, Client>();
 
         public ChatGroup(string name)
         {

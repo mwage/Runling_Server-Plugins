@@ -1,11 +1,11 @@
-﻿using System;
+﻿using DarkRift;
+using DarkRift.Server;
+using LoginPlugin;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
-using DarkRift;
-using DarkRift.Server;
-using LoginPlugin;
 
 namespace RoomSystemPlugin
 {
@@ -40,12 +40,14 @@ namespace RoomSystemPlugin
         private const ushort StartGame = 15;
         private const ushort StartGameSuccess = 16;
         private const ushort StartGameFailed = 17;
+        
+        public Dictionary<ushort, Room> RoomList { get; } = new Dictionary<ushort, Room>();
 
+        private readonly Dictionary<uint, Room> _playersInRooms = new Dictionary<uint, Room>();
         private const string ConfigPath = @"Plugins\RoomSystem.xml";
         private Login _loginPlugin;
+        private GameServer _gameServerPlugin;
         private bool _debug = true;
-        public Dictionary<ushort, Room> RoomList = new Dictionary<ushort, Room>();
-        private readonly Dictionary<uint, Room> _playersInRooms = new Dictionary<uint, Room>();
 
         public RoomSystem(PluginLoadData pluginLoadData) : base(pluginLoadData)
         {
@@ -83,7 +85,7 @@ namespace RoomSystemPlugin
                 }
                 catch (Exception ex)
                 {
-                    WriteEvent("Failed to load Login.xml: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
+                    WriteEvent("Failed to load RoomSystem.xml: " + ex.Message + " - " + ex.StackTrace, LogType.Error);
                 }
             }
         }
@@ -94,6 +96,7 @@ namespace RoomSystemPlugin
             if (_loginPlugin == null)
             {
                 _loginPlugin = PluginManager.GetPluginByType<Login>();
+                _gameServerPlugin = PluginManager.GetPluginByType<GameServer>();
             }
 
             e.Client.MessageReceived += OnMessageReceived;
@@ -138,11 +141,11 @@ namespace RoomSystemPlugin
                     return;
                 }
 
-                roomName = AdjustRoomName(roomName, _loginPlugin.UsersLoggedIn[client]);
+                roomName = AdjustRoomName(roomName, _loginPlugin.Users[client]);
                 var roomId = GenerateRoomId();
 
                 var room = new Room(roomId, roomName, gameMode, isVisible);
-                var player = new Player(client.GlobalID, _loginPlugin.UsersLoggedIn[client], true, color);
+                var player = new Player(client.GlobalID, _loginPlugin.Users[client], true, color);
                 room.AddPlayer(player, client);
                 RoomList.Add(roomId, room);
                 _playersInRooms.Add(client.GlobalID, room);
@@ -196,7 +199,7 @@ namespace RoomSystemPlugin
                     return;
                 }
                 var room = RoomList[roomId];
-                var newPlayer = new Player(client.GlobalID, _loginPlugin.UsersLoggedIn[client], false, color);
+                var newPlayer = new Player(client.GlobalID, _loginPlugin.Users[client], false, color);
 
                 // Check if player already is in an active room -> Send error 2
                 if (_playersInRooms.ContainsKey(client.GlobalID))
@@ -364,7 +367,7 @@ namespace RoomSystemPlugin
                     return;
                 }
 
-                var username = _loginPlugin.UsersLoggedIn[client];
+                var username = _loginPlugin.Users[client];
                 var player = RoomList[roomId].PlayerList.FirstOrDefault(p => p.Name == username);
                 if (player == null || !player.IsHost)
                 {
@@ -382,8 +385,23 @@ namespace RoomSystemPlugin
                 }
 
                 // Start Game - Insert whatever data you need to send to initialize game (f.e. game server connection info)
-                RoomList[roomId].HasStarted = true;
+                var gameServer = _gameServerPlugin.GameServers.Values.FirstOrDefault(s => s.IsAvailable);
+                if (gameServer == null)
+                {
+                    // No GameServer available -> return error 3
+                    var wr = new DarkRiftWriter();
+                    wr.Write((byte)3);
 
+                    client.SendMessage(new TagSubjectMessage(RoomTag, StartGameFailed, wr), SendMode.Reliable);
+                    return;
+                }
+                
+                RoomList[roomId].HasStarted = true;
+                _gameServerPlugin.StartGame(RoomList[roomId], gameServer);
+
+                var writer = new DarkRiftWriter();
+                writer.Write(gameServer.Port);
+                
                 foreach (var cl in RoomList[roomId].Clients)
                 {
                     cl.SendMessage(new TagSubjectMessage(RoomTag, StartGameSuccess, new DarkRiftWriter()), SendMode.Reliable);
@@ -461,8 +479,7 @@ namespace RoomSystemPlugin
 
                 if (_debug)
                 {
-                    WriteEvent("User " + client.GlobalID + " left Room: " + room.Name,
-                        LogType.Info);
+                    WriteEvent("User " + client.GlobalID + " left Room: " + room.Name, LogType.Info);
                 }
             }
             else

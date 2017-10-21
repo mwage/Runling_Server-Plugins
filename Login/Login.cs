@@ -1,12 +1,12 @@
-﻿using System;
+﻿using DarkRift;
+using DarkRift.Server;
+using DbConnectorPlugin;
+using MongoDB.Driver;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
-using DarkRift;
-using DarkRift.Server;
-using DbConnectorPlugin;
-using MongoDB.Driver;
 
 namespace LoginPlugin
 {
@@ -38,8 +38,8 @@ namespace LoginPlugin
         private const ushort AddUserFailed = 7;
 
         // Connects the Client with his Username
-        public Dictionary<Client, string> UsersLoggedIn = new Dictionary<Client, string>();
-        public Dictionary<string, Client> Clients = new Dictionary<string, Client>();
+        public Dictionary<Client, string> Users { get; } = new Dictionary<Client, string>();
+        public Dictionary<string, Client> Clients { get; } = new Dictionary<string, Client>();
 
         private const string ConfigPath = @"Plugins\Login.xml";
         private const string PrivateKeyPath = @"Plugins\PrivateKey.xml";
@@ -115,17 +115,17 @@ namespace LoginPlugin
                 _dbConnector = PluginManager.GetPluginByType<DbConnector>();
             }
 
-            UsersLoggedIn[e.Client] = null;
+            Users[e.Client] = null;
 
             e.Client.MessageReceived += OnMessageReceived;
         }
 
         private void OnPlayerDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
-            if (UsersLoggedIn.ContainsKey(e.Client))
+            if (Users.ContainsKey(e.Client))
             {
-                var username = UsersLoggedIn[e.Client];
-                UsersLoggedIn.Remove(e.Client);
+                var username = Users[e.Client];
+                Users.Remove(e.Client);
 
                 if (username != null)
                 {
@@ -146,7 +146,7 @@ namespace LoginPlugin
             if (message.Subject == LoginUser)
             {
                 // If user is already logged in (shouldn't happen though)
-                if (UsersLoggedIn[client] != null)
+                if (Users[client] != null)
                 {
                     client.SendMessage(new TagSubjectMessage(LoginTag, LoginSuccess, new DarkRiftWriter()), SendMode.Reliable);
                     return;
@@ -168,7 +168,7 @@ namespace LoginPlugin
                     return;
                 }
 
-                if (UsersLoggedIn.ContainsValue(username))
+                if (Users.ContainsValue(username))
                 {
                     // Username is already in use -> return Error 3
                     var writer = new DarkRiftWriter();
@@ -183,7 +183,7 @@ namespace LoginPlugin
 
                     if (user != null && BCrypt.Net.BCrypt.Verify(password, user.Password))
                     {
-                        UsersLoggedIn[client] = username;
+                        Users[client] = username;
                         Clients[username] = client;
 
                         client.SendMessage(new TagSubjectMessage(LoginTag, LoginSuccess, new DarkRiftWriter()), SendMode.Reliable);
@@ -216,8 +216,8 @@ namespace LoginPlugin
             // Logout Request
             if (message.Subject == LogoutUser)
             {
-                var username = UsersLoggedIn[client];
-                UsersLoggedIn[client] = null;
+                var username = Users[client];
+                Users[client] = null;
                 if (username != null)
                 {
                     Clients.Remove(username);
@@ -398,7 +398,7 @@ namespace LoginPlugin
 
         public bool PlayerLoggedIn(Client client, byte tag, ushort subject, string error)
         {
-            if (UsersLoggedIn[client] != null)
+            if (Users[client] != null)
                 return true;
 
             var writer = new DarkRiftWriter();

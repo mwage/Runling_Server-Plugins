@@ -1,7 +1,7 @@
-using System.Collections.Generic;
-using System.Linq;
 using DarkRift;
 using DarkRift.Server;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace RoomSystemPlugin
 {
@@ -10,8 +10,8 @@ namespace RoomSystemPlugin
         public ushort Id { get; }
         public string Name { get; }
         public GameType GameType { get; }
-        public List<Player> PlayerList = new List<Player>();
-        public List<Client> Clients = new List<Client>();
+        public List<Player> PlayerList { get; } = new List<Player>();
+        public List<Client> Clients { get; } = new List<Client>();
         public byte MaxPlayers => GetMaxPlayers();
         public bool HasStarted { get; set; }
         public bool IsVisible { get; }

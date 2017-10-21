@@ -1,12 +1,12 @@
-﻿using System;
+﻿using DarkRift;
+using DarkRift.Server;
+using LoginPlugin;
+using RoomSystemPlugin;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
-using DarkRift;
-using DarkRift.Server;
-using LoginPlugin;
-using RoomSystemPlugin;
 
 namespace ChatPlugin
 {
@@ -41,8 +41,8 @@ namespace ChatPlugin
         private RoomSystem _roomSystem;
         private bool _debug = true;
 
-        public Dictionary<string, ChatGroup> ChatGroups = new Dictionary<string, ChatGroup>();
-        public Dictionary<string, List<ChatGroup>> ChatGroupsOfPlayer = new Dictionary<string, List<ChatGroup>>();
+        public Dictionary<string, ChatGroup> ChatGroups { get; }= new Dictionary<string, ChatGroup>();
+        public Dictionary<string, List<ChatGroup>> ChatGroupsOfPlayer { get; } = new Dictionary<string, List<ChatGroup>>();
 
         public Chat(PluginLoadData pluginLoadData) : base(pluginLoadData)
         {
@@ -112,7 +112,7 @@ namespace ChatPlugin
                 if (!_loginPlugin.PlayerLoggedIn(client, ChatTag, MessageFailed, "Private Message failed."))
                     return;
 
-                var senderName = _loginPlugin.UsersLoggedIn[client];
+                var senderName = _loginPlugin.Users[client];
                 string receiver;
                 string content;
 
@@ -163,7 +163,7 @@ namespace ChatPlugin
                 if (!_loginPlugin.PlayerLoggedIn(client, ChatTag, MessageFailed, "Group/Room Message failed."))
                     return;
 
-                var senderName = _loginPlugin.UsersLoggedIn[client];
+                var senderName = _loginPlugin.Users[client];
                 ushort roomId;
                 string content;
 
@@ -207,7 +207,7 @@ namespace ChatPlugin
                 if (!_loginPlugin.PlayerLoggedIn(client, ChatTag, MessageFailed, "Group/Room Message failed."))
                     return;
 
-                var senderName = _loginPlugin.UsersLoggedIn[client];
+                var senderName = _loginPlugin.Users[client];
                 string groupName;
                 string content;
 
@@ -252,7 +252,7 @@ namespace ChatPlugin
                 if (!_loginPlugin.PlayerLoggedIn(client, ChatTag, JoinGroupFailed, "Join ChatGroup failed."))
                     return;
 
-                var playerName = _loginPlugin.UsersLoggedIn[client];
+                var playerName = _loginPlugin.Users[client];
                 string groupName;
 
                 try
@@ -308,7 +308,7 @@ namespace ChatPlugin
                 if (!_loginPlugin.PlayerLoggedIn(client, ChatTag, JoinGroupFailed, "Leave ChatGroup failed."))
                     return;
 
-                var playerName = _loginPlugin.UsersLoggedIn[client];
+                var playerName = _loginPlugin.Users[client];
                 string groupName;
 
                 try
