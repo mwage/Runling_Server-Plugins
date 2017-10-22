@@ -94,7 +94,7 @@ namespace RoomSystemPlugin
                 return;
 
             var client = (Client) sender;
-
+            
             // Register as Game Server
             if (message.Subject == RegisterServer)
             {

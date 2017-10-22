@@ -3,6 +3,7 @@ using DarkRift.Server;
 using LoginPlugin;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -384,7 +385,7 @@ namespace RoomSystemPlugin
                     return;
                 }
 
-                // Start Game - Insert whatever data you need to send to initialize game (f.e. game server connection info)
+                // Prepare Gameserver
                 var gameServer = _gameServerPlugin.GameServers.Values.FirstOrDefault(s => s.IsAvailable);
                 if (gameServer == null)
                 {
@@ -393,6 +394,11 @@ namespace RoomSystemPlugin
                     wr.Write((byte)3);
 
                     client.SendMessage(new TagSubjectMessage(RoomTag, StartGameFailed, wr), SendMode.Reliable);
+                    
+                    if (_debug)
+                    {
+                        WriteEvent("Failed to start game, no game-server available!", LogType.Warning);
+                    }
                     return;
                 }
                 
@@ -404,7 +410,7 @@ namespace RoomSystemPlugin
                 
                 foreach (var cl in RoomList[roomId].Clients)
                 {
-                    cl.SendMessage(new TagSubjectMessage(RoomTag, StartGameSuccess, new DarkRiftWriter()), SendMode.Reliable);
+                    cl.SendMessage(new TagSubjectMessage(RoomTag, StartGameSuccess, writer), SendMode.Reliable);
                 }
             }
         }

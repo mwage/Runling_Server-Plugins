@@ -6,11 +6,11 @@ namespace DbConnectorPlugin
     public class User
     {
         [BsonId]
-        public string Username { get; }
-        public string Password { get; }
-        public List<string> Friends { get; }
-        public List<string> OpenFriendRequests { get; }
-        public List<string> UnansweredFriendRequests { get; }
+        public string Username { get; set; }
+        public string Password { get; set; }
+        public List<string> Friends { get; set; }
+        public List<string> OpenFriendRequests { get; set; }
+        public List<string> UnansweredFriendRequests { get; set; }
 
         public User(string username, string password)
         {

@@ -309,7 +309,7 @@ namespace LoginPlugin
 
         private void UsersOnlineCommand(object sender, CommandEventArgs e)
         {
-            WriteEvent(ClientManager.GetAllClients().Length + " users online", LogType.Info);
+            WriteEvent(Users.Count + " users online", LogType.Info);
         }
 
         private void DebugCommand(object sender, CommandEventArgs e)
