@@ -3,7 +3,6 @@ using DarkRift.Server;
 using LoginPlugin;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -41,6 +40,7 @@ namespace RoomSystemPlugin
         private const ushort StartGame = 15;
         private const ushort StartGameSuccess = 16;
         private const ushort StartGameFailed = 17;
+        private const ushort ServerReady = 18;
         
         public Dictionary<ushort, Room> RoomList { get; } = new Dictionary<ushort, Room>();
 
@@ -412,6 +412,14 @@ namespace RoomSystemPlugin
                 {
                     cl.SendMessage(new TagSubjectMessage(RoomTag, StartGameSuccess, writer), SendMode.Reliable);
                 }
+            }
+        }
+
+        public void LoadGame(Room room)
+        {
+            foreach (var client in room.Clients)
+            {
+                client.SendMessage(new TagSubjectMessage(RoomTag, ServerReady, new DarkRiftWriter()), SendMode.Reliable);
             }
         }
 

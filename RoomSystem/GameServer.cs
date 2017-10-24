@@ -24,11 +24,13 @@ namespace RoomSystemPlugin
         private const ushort RegisterServer = 0;
         private const ushort ServerAvailable = 1;
         private const ushort InitializeGame = 2;
+        private const ushort ServerReady = 3;
 
         public Dictionary<Client, Server> GameServers { get; } = new Dictionary<Client, Server>();
         private readonly List<ushort> _portsInUse = new List<ushort>();
         private const string ConfigPath = @"Plugins\GameServer.xml";
         private Login _loginPlugin;
+        private RoomSystem _roomSystem;
         private bool _debug = true;
 
         public GameServer(PluginLoadData pluginLoadData) : base(pluginLoadData)
@@ -78,6 +80,7 @@ namespace RoomSystemPlugin
             if (_loginPlugin == null)
             {
                 _loginPlugin = PluginManager.GetPluginByType<Login>();
+                _roomSystem = PluginManager.GetPluginByType<RoomSystem>();
             }
 
             e.Client.MessageReceived += OnMessageReceived;
@@ -122,10 +125,16 @@ namespace RoomSystemPlugin
             {
                 GameServers[client].IsAvailable = true;
             }
+            // Game Server ready
+            if (message.Subject == ServerReady)
+            {
+                _roomSystem.LoadGame(GameServers[client].Room);
+            }
         }
 
         internal void StartGame(Room room, Server server)
         {
+            server.Room = room;
             server.IsAvailable = false;
             var writer = new DarkRiftWriter();
             writer.Write((byte)room.GameType);
