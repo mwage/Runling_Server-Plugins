@@ -292,7 +292,7 @@ namespace LoginPlugin
 
         private void AddNewUser(string username, string password)
         {
-            _dbConnector.Users.InsertOne(new User(username, password));
+            _dbConnector.Users.InsertOne(new User(username, password, _dbConnector));
 
             if (_debug)
             {

@@ -131,8 +131,8 @@ namespace LoginPlugin
 
                 try
                 {
-                    var receiverUser = _dbConnector.Users.AsQueryable().FirstOrDefault(u => u.Username == receiver);
-                    if (receiverUser == null)
+                    var receiverFriendList = _dbConnector.FriendLists.AsQueryable().FirstOrDefault(u => u.Username == receiver);
+                    if (receiverFriendList == null)
                     {
                         // No user with that name found -> return error 3
                         var wr = new DarkRiftWriter();
@@ -146,7 +146,7 @@ namespace LoginPlugin
                         return;
                     }
 
-                    if (receiverUser.Friends.Contains(senderName) || receiverUser.OpenFriendRequests.Contains(senderName))
+                    if (receiverFriendList.Friends.Contains(senderName) || receiverFriendList.OpenFriendRequests.Contains(senderName))
                     {
                         // Users are already friends or have an open request -> return error 4
                         var wr = new DarkRiftWriter();
@@ -373,14 +373,14 @@ namespace LoginPlugin
 
                 try
                 {
-                    var user = _dbConnector.Users.AsQueryable().First(u => u.Username == senderName);
+                    var friendList = _dbConnector.FriendLists.AsQueryable().First(fL => fL.Username == senderName);
                     var onlineFriends = new List<string>();
                     var offlineFriends = new List<string>();
 
                     var writer = new DarkRiftWriter();
                     writer.Write(senderName);
 
-                    foreach (var friend in user.Friends)
+                    foreach (var friend in friendList.Friends)
                     {
                         if (_loginPlugin.Clients.ContainsKey(friend))
                         {
@@ -400,8 +400,8 @@ namespace LoginPlugin
                     var wr = new DarkRiftWriter();
                     wr.Write(onlineFriends.ToArray());
                     wr.Write(offlineFriends.ToArray());
-                    wr.Write(user.OpenFriendRequests.ToArray());
-                    wr.Write(user.UnansweredFriendRequests.ToArray());
+                    wr.Write(friendList.OpenFriendRequests.ToArray());
+                    wr.Write(friendList.UnansweredFriendRequests.ToArray());
                     
                     client.SendMessage(new TagSubjectMessage(FriendsTag, GetAllFriends, wr), SendMode.Reliable);
 
@@ -420,7 +420,7 @@ namespace LoginPlugin
 
         public void LogoutFriend(string username)
         {
-            var friends = _dbConnector.Users.AsQueryable().First(u => u.Username == username).Friends;
+            var friends = _dbConnector.FriendLists.AsQueryable().First(fL => fL.Username == username).Friends;
             var writer = new DarkRiftWriter();
             writer.Write(username);
 
@@ -440,65 +440,65 @@ namespace LoginPlugin
 
         private void AddRequests(string sender, string receiver)
         {
-            var updateReceiving = Builders<User>.Update.AddToSet(u => u.OpenFriendRequests, sender);
-            _dbConnector.Users.UpdateOne(u => u.Username == receiver, updateReceiving);
-            var updateSender = Builders<User>.Update.AddToSet(u => u.UnansweredFriendRequests, receiver);
-            _dbConnector.Users.UpdateOne(u => u.Username == sender, updateSender);
+            var updateReceiving = Builders<FriendList>.Update.AddToSet(fL => fL.OpenFriendRequests, sender);
+            _dbConnector.FriendLists.UpdateOne(fL => fL.Username == receiver, updateReceiving);
+            var updateSender = Builders<FriendList>.Update.AddToSet(fL => fL.UnansweredFriendRequests, receiver);
+            _dbConnector.FriendLists.UpdateOne(u => u.Username == sender, updateSender);
         }
 
         private void RemoveRequests(string sender, string receiver)
         {
-            var updateSender = Builders<User>.Update.Pull(u => u.OpenFriendRequests, receiver);
-            _dbConnector.Users.UpdateOne(u => u.Username == sender, updateSender);
-            var updateReceiving = Builders<User>.Update.Pull(u => u.UnansweredFriendRequests, sender);
-            _dbConnector.Users.UpdateOne(u => u.Username == receiver, updateReceiving);
+            var updateSender = Builders<FriendList>.Update.Pull(fL => fL.OpenFriendRequests, receiver);
+            _dbConnector.FriendLists.UpdateOne(u => u.Username == sender, updateSender);
+            var updateReceiving = Builders<FriendList>.Update.Pull(fL => fL.UnansweredFriendRequests, sender);
+            _dbConnector.FriendLists.UpdateOne(u => u.Username == receiver, updateReceiving);
         }
 
         private void AddFriends(string sender, string receiver)
         {
-            var updateReceiving = Builders<User>.Update.AddToSet(u => u.Friends, sender);
-            _dbConnector.Users.UpdateOne(u => u.Username == receiver, updateReceiving);
-            var updateSending = Builders<User>.Update.AddToSet(u => u.Friends, receiver);
-            _dbConnector.Users.UpdateOne(u => u.Username == sender, updateSending);
+            var updateReceiving = Builders<FriendList>.Update.AddToSet(fL => fL.Friends, sender);
+            _dbConnector.FriendLists.UpdateOne(u => u.Username == receiver, updateReceiving);
+            var updateSending = Builders<FriendList>.Update.AddToSet(fL => fL.Friends, receiver);
+            _dbConnector.FriendLists.UpdateOne(u => u.Username == sender, updateSending);
         }
 
         private void RemoveFriends(string sender, string receiver)
         {
-            var senderUser = _dbConnector.Users.AsQueryable().First(u => u.Username == sender);
-            var receiverUser = _dbConnector.Users.AsQueryable().First(u => u.Username == receiver);
+            var senderFriendList = _dbConnector.FriendLists.AsQueryable().First(fL => fL.Username == sender);
+            var receiverFriendList = _dbConnector.FriendLists.AsQueryable().First(fL => fL.Username == receiver);
 
             // Update sender
-            if (senderUser.Friends.Contains(receiver))
+            if (senderFriendList.Friends.Contains(receiver))
             {
-                var updateSender = Builders<User>.Update.Pull(u => u.Friends, receiver);
-                _dbConnector.Users.UpdateOne(u => u.Username == sender, updateSender);
+                var updateSender = Builders<FriendList>.Update.Pull(fL => fL.Friends, receiver);
+                _dbConnector.FriendLists.UpdateOne(fL => fL.Username == sender, updateSender);
             }
-            if (senderUser.OpenFriendRequests.Contains(receiver))
+            if (senderFriendList.OpenFriendRequests.Contains(receiver))
             {
-                var updateSender = Builders<User>.Update.Pull(u => u.OpenFriendRequests, receiver);
-                _dbConnector.Users.UpdateOne(u => u.Username == sender, updateSender);
+                var updateSender = Builders<FriendList>.Update.Pull(fL => fL.OpenFriendRequests, receiver);
+                _dbConnector.FriendLists.UpdateOne(fL => fL.Username == sender, updateSender);
             }
-            if (senderUser.UnansweredFriendRequests.Contains(receiver))
+            if (senderFriendList.UnansweredFriendRequests.Contains(receiver))
             {
-                var updateSender = Builders<User>.Update.Pull(u => u.UnansweredFriendRequests, receiver);
-                _dbConnector.Users.UpdateOne(u => u.Username == sender, updateSender);
+                var updateSender = Builders<FriendList>.Update.Pull(fL => fL.UnansweredFriendRequests, receiver);
+                _dbConnector.FriendLists.UpdateOne(fL => fL.Username == sender, updateSender);
             }
 
             //Update receiver
-            if (receiverUser.Friends.Contains(sender))
+            if (receiverFriendList.Friends.Contains(sender))
             {
-                var updateReceiver = Builders<User>.Update.Pull(u => u.Friends, sender);
-                _dbConnector.Users.UpdateOne(u => u.Username == receiver, updateReceiver);
+                var updateReceiver = Builders<FriendList>.Update.Pull(fL => fL.Friends, sender);
+                _dbConnector.FriendLists.UpdateOne(fL => fL.Username == receiver, updateReceiver);
             }
-            if (receiverUser.OpenFriendRequests.Contains(sender))
+            if (receiverFriendList.OpenFriendRequests.Contains(sender))
             {
-                var updateReceiver = Builders<User>.Update.Pull(u => u.OpenFriendRequests, sender);
-                _dbConnector.Users.UpdateOne(u => u.Username == receiver, updateReceiver);
+                var updateReceiver = Builders<FriendList>.Update.Pull(fL => fL.OpenFriendRequests, sender);
+                _dbConnector.FriendLists.UpdateOne(fL => fL.Username == receiver, updateReceiver);
             }
-            if (receiverUser.UnansweredFriendRequests.Contains(sender))
+            if (receiverFriendList.UnansweredFriendRequests.Contains(sender))
             {
-                var updateReceiver = Builders<User>.Update.Pull(u => u.UnansweredFriendRequests, sender);
-                _dbConnector.Users.UpdateOne(u => u.Username == receiver, updateReceiver);
+                var updateReceiver = Builders<FriendList>.Update.Pull(fL => fL.UnansweredFriendRequests, sender);
+                _dbConnector.FriendLists.UpdateOne(fL => fL.Username == receiver, updateReceiver);
             }
         }
 

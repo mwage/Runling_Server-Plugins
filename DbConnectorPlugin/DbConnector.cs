@@ -13,6 +13,7 @@ namespace DbConnectorPlugin
         public override bool ThreadSafe => false;
 
         public IMongoCollection<User> Users { get; private set; }
+        public IMongoCollection<FriendList> FriendLists { get; private set; }
 
         private const string ConfigPath = @"Plugins\DbConnector.xml";
         private readonly IMongoDatabase _database;
@@ -74,6 +75,7 @@ namespace DbConnectorPlugin
         private void GetCollections()
         {
             Users = _database.GetCollection<User>("users");
+            FriendLists = _database.GetCollection<FriendList>("friendlists");
         }
 
         #region ErrorHandling

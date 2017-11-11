@@ -1,5 +1,4 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
-using System.Collections.Generic;
 
 namespace DbConnectorPlugin
 {
@@ -8,17 +7,12 @@ namespace DbConnectorPlugin
         [BsonId]
         public string Username { get; set; }
         public string Password { get; set; }
-        public List<string> Friends { get; set; }
-        public List<string> OpenFriendRequests { get; set; }
-        public List<string> UnansweredFriendRequests { get; set; }
 
-        public User(string username, string password)
+        public User(string username, string password, DbConnector dbConnector)
         {
             Username = username;
             Password = password;
-            Friends = new List<string>();
-            OpenFriendRequests = new List<string>();
-            UnansweredFriendRequests = new List<string>();
+            dbConnector.FriendLists.InsertOne(new FriendList(username));
         }
     }
 }
