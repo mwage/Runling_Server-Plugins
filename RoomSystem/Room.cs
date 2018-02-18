@@ -11,7 +11,7 @@ namespace RoomSystemPlugin
         public string Name { get; }
         public GameType GameType { get; }
         public List<Player> PlayerList { get; } = new List<Player>();
-        public List<Client> Clients { get; } = new List<Client>();
+        public List<IClient> Clients { get; } = new List<IClient>();
         public byte MaxPlayers => GetMaxPlayers();
         public bool HasStarted { get; set; }
         public bool IsVisible { get; }
@@ -25,7 +25,7 @@ namespace RoomSystemPlugin
             HasStarted = false;
         }
 
-        internal bool AddPlayer(Player player, Client client)
+        internal bool AddPlayer(Player player, IClient client)
         {
             if (PlayerList.Count >= MaxPlayers || HasStarted)
                 return false;
@@ -35,12 +35,12 @@ namespace RoomSystemPlugin
             return true;
         }
 
-        internal bool RemovePlayer(Client client)
+        internal bool RemovePlayer(IClient client)
         {
-            if (PlayerList.All(p => p.Id != client.GlobalID) && !Clients.Contains(client))
+            if (PlayerList.All(p => p.Id != client.ID) && !Clients.Contains(client))
                 return false;
 
-            PlayerList.Remove(PlayerList.Find(p => p.Id == client.GlobalID));
+            PlayerList.Remove(PlayerList.Find(p => p.Id == client.ID));
             Clients.Remove(client);
             return true;
         }
