@@ -176,7 +176,7 @@ namespace LoginPlugin
                     catch (Exception ex)
                     {
                         // Return Error 0 for Invalid Data Packages Recieved
-                        InvalidData(client, LoginTag, LoginFailed, ex, "Failed to log in!");
+                        InvalidData(client, LoginFailed, ex, "Failed to log in!");
                         return;
                     }
 
@@ -283,7 +283,7 @@ namespace LoginPlugin
                     catch (Exception ex)
                     {
                         // Return Error 0 for Invalid Data Packages Recieved
-                        InvalidData(client, LoginTag, AddUserFailed, ex, "Failed to add user!");
+                        InvalidData(client, AddUserFailed, ex, "Failed to add user!");
                         return;
                     }
 
@@ -456,7 +456,7 @@ namespace LoginPlugin
             return false;
         }
 
-        public void InvalidData(IClient client, byte tag, ushort subject, Exception e, string error)
+        public void InvalidData(IClient client, ushort tag, Exception e, string error)
         {
             using (var writer = DarkRiftWriter.Create())
             {

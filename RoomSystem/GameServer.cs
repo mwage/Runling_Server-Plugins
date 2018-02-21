@@ -19,14 +19,15 @@ namespace RoomSystemPlugin
 
         // Tag
         private const byte GameServerTag = 4;
+        private const ushort Shift = GameServerTag * Login.TagsPerPlugin;
 
         // Subjects
-        private const ushort RegisterServer = 0;
-        private const ushort ServerAvailable = 1;
-        private const ushort InitializeGame = 2;
-        private const ushort ServerReady = 3;
+        private const ushort RegisterServer = 0 + Shift;
+        private const ushort ServerAvailable = 1 + Shift;
+        private const ushort InitializeGame = 2 + Shift;
+        private const ushort ServerReady = 3 + Shift;
 
-        public Dictionary<Client, Server> GameServers { get; } = new Dictionary<Client, Server>();
+        public Dictionary<IClient, Server> GameServers { get; } = new Dictionary<IClient, Server>();
         private readonly List<ushort> _portsInUse = new List<ushort>();
         private const string ConfigPath = @"Plugins\GameServer.xml";
         private Login _loginPlugin;
@@ -93,61 +94,76 @@ namespace RoomSystemPlugin
 
         private void OnMessageReceived(object sender, MessageReceivedEventArgs e)
         {
-            if (!(e.Message is TagSubjectMessage message) || message.Tag != GameServerTag)
-                return;
-
-            var client = (Client) sender;
-            
-            // Register as Game Server
-            if (message.Subject == RegisterServer)
+            using (var message = e.GetMessage())
             {
-                ushort port = 4297;
-                while (_portsInUse.Contains(port))
+                // Check if message is meant for this plugin
+                if (message.Tag < Login.TagsPerPlugin * GameServerTag || message.Tag >= Login.TagsPerPlugin * (GameServerTag + 1))
+                    return;
+
+                var client = e.Client;
+                
+                switch (message.Tag)
                 {
-                    port++;
+                    case RegisterServer:
+                    {
+                        // Find an available port
+                        ushort port = 4297;
+                        while (_portsInUse.Contains(port))
+                        {
+                            port++;
+                        }
+                        _portsInUse.Add(port);
+                        GameServers[client] = new Server(port, client);
+                        _loginPlugin.Users.Remove(client);
+
+                        using (var writer = DarkRiftWriter.Create())
+                        {
+                            writer.Write(port);
+
+                            using (var msg = Message.Create(RegisterServer, writer))
+                            {
+                                client.SendMessage(msg, SendMode.Reliable);
+                            }
+                        }
+
+                        if (_debug)
+                        {
+                            WriteEvent("New Server registered at port: " + port, LogType.Info);
+                        }
+                        break;
+                    }
+                    case ServerAvailable:
+                        GameServers[client].IsAvailable = true;
+                        break;
+                    case ServerReady:
+                        _roomSystem.LoadGame(GameServers[client].Room);
+                        break;
                 }
-                _portsInUse.Add(4297);
-                GameServers[client] = new Server(port, client);
-                _loginPlugin.Users.Remove(client);
-
-                var writer = new DarkRiftWriter();
-                writer.Write(port);
-
-                client.SendMessage(new TagSubjectMessage(GameServerTag, RegisterServer, writer), SendMode.Reliable);
-
-                if (_debug)
-                {
-                    WriteEvent("New Server registered at port: " + port, LogType.Info);
-                }
-            }
-            // Game Server available
-            if (message.Subject == ServerAvailable)
-            {
-                GameServers[client].IsAvailable = true;
-            }
-            // Game Server ready
-            if (message.Subject == ServerReady)
-            {
-                _roomSystem.LoadGame(GameServers[client].Room);
             }
         }
 
         internal void StartGame(Room room, Server server)
         {
+            // Set up server for a game
             server.Room = room;
             server.IsAvailable = false;
-            var writer = new DarkRiftWriter();
-            writer.Write((byte)room.GameType);
-
-            foreach (var player in room.PlayerList)
+            using (var writer = DarkRiftWriter.Create())
             {
-                writer.Write(player);
+                writer.Write((byte)room.GameType);
+
+                foreach (var player in room.PlayerList)
+                {
+                    writer.Write(player);
+                }
+
+                using (var msg = Message.Create(InitializeGame, writer))
+                {
+                    server.Client.SendMessage(msg, SendMode.Reliable);
+                }
             }
-            
-            server.Client.SendMessage(new TagSubjectMessage(GameServerTag, InitializeGame, writer), SendMode.Reliable);
         }
 
-        private void RemoveServer(Client client)
+        private void RemoveServer(IClient client)
         {
             if (!GameServers.ContainsKey(client))
                 return;

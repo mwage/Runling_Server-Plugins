@@ -133,7 +133,7 @@ namespace LoginPlugin
                         catch (Exception ex)
                         {
                             // Return Error 0 for Invalid Data Packages Recieved
-                            _loginPlugin.InvalidData(client, FriendsTag, RequestFailed, ex, "Friend Request Failed! ");
+                            _loginPlugin.InvalidData(client, RequestFailed, ex, "Friend Request Failed! ");
                             return;
                         }
 
@@ -243,7 +243,7 @@ namespace LoginPlugin
                         catch (Exception ex)
                         {
                             // Return Error 0 for Invalid Data Packages Recieved
-                            _loginPlugin.InvalidData(client, FriendsTag, DeclineRequestFailed, ex, "Decline Request Failed!");
+                            _loginPlugin.InvalidData(client, DeclineRequestFailed, ex, "Decline Request Failed!");
                             return;
                         }
 
@@ -311,7 +311,7 @@ namespace LoginPlugin
                         catch (Exception ex)
                         {
                             // Return Error 0 for Invalid Data Packages Recieved
-                            _loginPlugin.InvalidData(client, FriendsTag, AcceptRequestFailed, ex, "Accept Request Failed!");
+                            _loginPlugin.InvalidData(client, AcceptRequestFailed, ex, "Accept Request Failed!");
                             return;
                         }
 
@@ -382,7 +382,7 @@ namespace LoginPlugin
                         catch (Exception ex)
                         {
                             // Return Error 0 for Invalid Data Packages Recieved
-                            _loginPlugin.InvalidData(client, FriendsTag, RemoveFriendFailed, ex, "Remove Friend Failed!");
+                            _loginPlugin.InvalidData(client, RemoveFriendFailed, ex, "Remove Friend Failed!");
                             return;
                         }
 
