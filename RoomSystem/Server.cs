@@ -6,10 +6,10 @@ namespace RoomSystemPlugin
     {
         public ushort Port { get; }
         public bool IsAvailable { get; set; } = false;
-        public Client Client { get; }
+        public IClient Client { get; }
         public Room Room { get; set; }
 
-        public Server(ushort port, Client client)
+        public Server(ushort port, IClient client)
         {
             Port = port;
             Client = client;
