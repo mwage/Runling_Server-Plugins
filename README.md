@@ -6,3 +6,4 @@ Darkrift 2 Server Plugins for Runling
 * Chat - handles all chat messages and chat rooms
 * Friends - Friendlist
 * RoomSystem - Create/Join/Leave rooms
+* GameServer - Register game servers and forward players to available ones
