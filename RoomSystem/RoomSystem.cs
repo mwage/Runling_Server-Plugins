@@ -35,13 +35,13 @@ namespace RoomSystemPlugin
         private const ushort PlayerJoined = 9 + Shift;
         private const ushort LeaveSuccess = 10 + Shift;
         private const ushort PlayerLeft = 11 + Shift;
-        private const ushort ChangeColor = 12;
-        private const ushort ChangeColorSuccess = 13;
-        private const ushort ChangeColorFailed = 14;
-        private const ushort StartGame = 15;
-        private const ushort StartGameSuccess = 16;
-        private const ushort StartGameFailed = 17;
-        private const ushort ServerReady = 18;
+        private const ushort ChangeColor = 12 + Shift;
+        private const ushort ChangeColorSuccess = 13 + Shift;
+        private const ushort ChangeColorFailed = 14 + Shift;
+        private const ushort StartGame = 15 + Shift;
+        private const ushort StartGameSuccess = 16 + Shift;
+        private const ushort StartGameFailed = 17 + Shift;
+        private const ushort ServerReady = 18 + Shift;
         
         public Dictionary<ushort, Room> RoomList { get; } = new Dictionary<ushort, Room>();
 
@@ -476,6 +476,7 @@ namespace RoomSystemPlugin
 
                         RoomList[roomId].HasStarted = true;
                         _gameServerPlugin.StartGame(RoomList[roomId], gameServer);
+
 
                         using (var writer = DarkRiftWriter.Create())
                         {
