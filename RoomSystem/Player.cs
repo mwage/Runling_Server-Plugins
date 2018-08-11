@@ -4,12 +4,12 @@ namespace RoomSystemPlugin
 {
     public class Player : IDarkRiftSerializable
     {
-        public uint Id { get; }
+        public ushort Id { get; }
         public string Name { get; }
         public bool IsHost { get; private set; }
         public PlayerColor Color { get; private set; }
 
-        public Player(uint id, string name, bool isHost, PlayerColor color)
+        public Player(ushort id, string name, bool isHost, PlayerColor color)
         {
             Id = id;
             Name = name;

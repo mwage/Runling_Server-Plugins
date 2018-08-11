@@ -48,7 +48,7 @@ namespace RoomSystemPlugin
         
         private const string ConfigPath = @"Plugins/RoomSystem.xml";
         private static readonly object InitializeLock = new object();
-        private readonly ConcurrentDictionary<uint, Room> _playersInRooms = new ConcurrentDictionary<uint, Room>();
+        private readonly ConcurrentDictionary<ushort, Room> _playersInRooms = new ConcurrentDictionary<ushort, Room>();
         private bool _debug = true;
         private Login _loginPlugin;
         private GameServer _gameServerPlugin;
