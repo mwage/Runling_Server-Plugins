@@ -24,7 +24,7 @@ namespace ChatPlugin
         public ConcurrentDictionary<string, List<ChatGroup>> ChatGroupsOfPlayer { get; } = new ConcurrentDictionary<string, List<ChatGroup>>();
 
         // Tag
-        private const byte ChatTag = 3;
+        private const byte ChatTag = 2;
         private const ushort Shift = ChatTag * Login.TagsPerPlugin;
 
         // Subjects

@@ -57,7 +57,7 @@ namespace RoomSystemPlugin
                 try
                 {
                     document.Save(ConfigPath);
-                    WriteEvent("Created /Plugins/GameServer.xml!", LogType.Warning);
+                    WriteEvent("Created /Plugins/GameServer.xml!", LogType.Info);
                 }
                 catch (Exception ex)
                 {
