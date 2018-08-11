@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml.Linq;
@@ -11,13 +12,13 @@ namespace RoomSystemPlugin
     public class GameServer : Plugin
     {
         public override Version Version => new Version(1, 0, 0);
-        public override bool ThreadSafe => false;
+        public override bool ThreadSafe => true;
         public override Command[] Commands => new[]
         {
             new Command("Server", "Shows all game servers", "", GetGameServer)
         };
 
-        public Dictionary<IClient, Server> GameServers { get; } = new Dictionary<IClient, Server>();
+        public ConcurrentDictionary<IClient, Server> GameServers { get; } = new ConcurrentDictionary<IClient, Server>();
 
         // Tag
         private const byte GameServerTag = 4;
@@ -30,6 +31,8 @@ namespace RoomSystemPlugin
         private const ushort ServerReady = 3 + Shift;
         private const string ConfigPath = @"Plugins\GameServer.xml";
         private readonly List<ushort> _portsInUse = new List<ushort>();
+        private static readonly object PortLock = new object();
+        private static readonly object InitializeLock = new object();
         private bool _debug = true;
         private Login _loginPlugin;
         private RoomSystem _roomSystem;
@@ -77,11 +80,17 @@ namespace RoomSystemPlugin
 
         private void OnPlayerConnected(object sender, ClientConnectedEventArgs e)
         {
-            // If you have DR2 Pro, use the Plugin.Loaded() method instead
+            // If you have DR2 Pro, use the Loaded() method instead and spare yourself the locks
             if (_loginPlugin == null)
             {
-                _loginPlugin = PluginManager.GetPluginByType<Login>();
-                _roomSystem = PluginManager.GetPluginByType<RoomSystem>();
+                lock (InitializeLock)
+                {
+                    if (_loginPlugin == null)
+                    {
+                        _loginPlugin = PluginManager.GetPluginByType<Login>();
+                        _roomSystem = PluginManager.GetPluginByType<RoomSystem>();
+                    }
+                }
             }
 
             e.Client.MessageReceived += OnMessageReceived;
@@ -108,13 +117,17 @@ namespace RoomSystemPlugin
                 {
                     case RegisterServer:
                     {
-                        // Find an available port
                         ushort port = 4297;
-                        while (_portsInUse.Contains(port))
+                            // Find an available port
+                        lock (PortLock)
                         {
-                            port++;
+                            while (_portsInUse.Contains(port))
+                            {
+                                port++;
+                            }
+                            _portsInUse.Add(port);
                         }
-                        _portsInUse.Add(port);
+
                         GameServers[client] = new Server(port, client);
                         _loginPlugin.UsersLoggedIn.TryRemove(client, out _);
 
@@ -133,7 +146,7 @@ namespace RoomSystemPlugin
                             WriteEvent("New Server registered at port: " + port, LogType.Info);
                         }
                         break;
-                    }
+                }
                     case ServerAvailable:
                         GameServers[client].IsAvailable = true;
                         break;
@@ -171,9 +184,12 @@ namespace RoomSystemPlugin
             {
                 return;
             }
+            lock (PortLock)
+            {
+                _portsInUse.Remove(GameServers[client].Port);
+            }
 
-            _portsInUse.Remove(GameServers[client].Port);
-            GameServers.Remove(client);
+            GameServers.TryRemove(client, out _);
         }
 
         private void GetGameServer(object sender, CommandEventArgs e)
