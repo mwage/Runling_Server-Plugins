@@ -1,10 +1,10 @@
-﻿using DarkRift;
-using DarkRift.Server;
-using LoginPlugin;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml.Linq;
+using DarkRift;
+using DarkRift.Server;
+using LoginPlugin;
 
 namespace RoomSystemPlugin
 {
@@ -17,6 +17,8 @@ namespace RoomSystemPlugin
             new Command("Server", "Shows all game servers", "", GetGameServer)
         };
 
+        public Dictionary<IClient, Server> GameServers { get; } = new Dictionary<IClient, Server>();
+
         // Tag
         private const byte GameServerTag = 4;
         private const ushort Shift = GameServerTag * Login.TagsPerPlugin;
@@ -26,13 +28,11 @@ namespace RoomSystemPlugin
         private const ushort ServerAvailable = 1 + Shift;
         private const ushort InitializeGame = 2 + Shift;
         private const ushort ServerReady = 3 + Shift;
-
-        public Dictionary<IClient, Server> GameServers { get; } = new Dictionary<IClient, Server>();
-        private readonly List<ushort> _portsInUse = new List<ushort>();
         private const string ConfigPath = @"Plugins\GameServer.xml";
+        private readonly List<ushort> _portsInUse = new List<ushort>();
+        private bool _debug = true;
         private Login _loginPlugin;
         private RoomSystem _roomSystem;
-        private bool _debug = true;
 
         public GameServer(PluginLoadData pluginLoadData) : base(pluginLoadData)
         {
@@ -98,10 +98,12 @@ namespace RoomSystemPlugin
             {
                 // Check if message is meant for this plugin
                 if (message.Tag < Login.TagsPerPlugin * GameServerTag || message.Tag >= Login.TagsPerPlugin * (GameServerTag + 1))
+                {
                     return;
+                }
 
                 var client = e.Client;
-                
+
                 switch (message.Tag)
                 {
                     case RegisterServer:
@@ -114,7 +116,7 @@ namespace RoomSystemPlugin
                         }
                         _portsInUse.Add(port);
                         GameServers[client] = new Server(port, client);
-                        _loginPlugin.Users.Remove(client);
+                        _loginPlugin.UsersLoggedIn.TryRemove(client, out _);
 
                         using (var writer = DarkRiftWriter.Create())
                         {
@@ -149,7 +151,7 @@ namespace RoomSystemPlugin
             server.IsAvailable = false;
             using (var writer = DarkRiftWriter.Create())
             {
-                writer.Write((byte)room.GameType);
+                writer.Write((byte) room.GameType);
 
                 foreach (var player in room.PlayerList)
                 {
@@ -166,7 +168,9 @@ namespace RoomSystemPlugin
         private void RemoveServer(IClient client)
         {
             if (!GameServers.ContainsKey(client))
+            {
                 return;
+            }
 
             _portsInUse.Remove(GameServers[client].Port);
             GameServers.Remove(client);

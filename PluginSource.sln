@@ -5,11 +5,13 @@ VisualStudioVersion = 15.0.27004.2002
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chat", "Chat\Chat.csproj", "{3D6FC7CF-178B-4047-9D24-54D4747CC04A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DbConnector", "DbConnectorPlugin\DbConnector.csproj", "{B71DBA54-D129-4744-B838-7C045B4A87C3}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Login", "Login\Login.csproj", "{C46EA14E-D389-43F4-B781-954C91727DF7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoomSystem", "RoomSystem\RoomSystem.csproj", "{29C1B09D-E0F8-43FC-B3BF-EBD2757BFB0B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Database", "Database\Database.csproj", "{4FDD81D8-0C7C-422A-A853-9491A43A0BCE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoDbConnector", "MongoDbConnector\MongoDbConnector.csproj", "{72930B48-493F-4974-BCA8-D54F98B29FE8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,10 +23,6 @@ Global
 		{3D6FC7CF-178B-4047-9D24-54D4747CC04A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3D6FC7CF-178B-4047-9D24-54D4747CC04A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3D6FC7CF-178B-4047-9D24-54D4747CC04A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B71DBA54-D129-4744-B838-7C045B4A87C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B71DBA54-D129-4744-B838-7C045B4A87C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B71DBA54-D129-4744-B838-7C045B4A87C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B71DBA54-D129-4744-B838-7C045B4A87C3}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C46EA14E-D389-43F4-B781-954C91727DF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C46EA14E-D389-43F4-B781-954C91727DF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C46EA14E-D389-43F4-B781-954C91727DF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -33,6 +31,14 @@ Global
 		{29C1B09D-E0F8-43FC-B3BF-EBD2757BFB0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{29C1B09D-E0F8-43FC-B3BF-EBD2757BFB0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{29C1B09D-E0F8-43FC-B3BF-EBD2757BFB0B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4FDD81D8-0C7C-422A-A853-9491A43A0BCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FDD81D8-0C7C-422A-A853-9491A43A0BCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FDD81D8-0C7C-422A-A853-9491A43A0BCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FDD81D8-0C7C-422A-A853-9491A43A0BCE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72930B48-493F-4974-BCA8-D54F98B29FE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72930B48-493F-4974-BCA8-D54F98B29FE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72930B48-493F-4974-BCA8-D54F98B29FE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72930B48-493F-4974-BCA8-D54F98B29FE8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
