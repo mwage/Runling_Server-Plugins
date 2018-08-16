@@ -30,11 +30,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="DarkRift">
-      <HintPath>..\..\..\Boilerplate Server\Lib\DarkRift.dll</HintPath>
+    <Reference Include="DarkRift, Version=2.1.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Runling Master Server\Lib\DarkRift.dll</HintPath>
     </Reference>
-    <Reference Include="DarkRift.Server">
-      <HintPath>..\..\..\Boilerplate Server\Lib\DarkRift.Server.dll</HintPath>
+    <Reference Include="DarkRift.Server, Version=2.1.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Runling Master Server\Lib\DarkRift.Server.dll</HintPath>
     </Reference>
     <Reference Include="Google.Protobuf, Version=3.5.1.0, Culture=neutral, PublicKeyToken=a7d26565bac4d604, processorArchitecture=MSIL">
       <HintPath>..\packages\Google.Protobuf.3.5.1\lib\net45\Google.Protobuf.dll</HintPath>

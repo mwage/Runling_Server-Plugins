@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Xml.Linq;
 using DarkRift;
 using DarkRift.Server;
@@ -29,8 +30,9 @@ namespace RoomSystemPlugin
         private const ushort ServerAvailable = 1 + Shift;
         private const ushort InitializeGame = 2 + Shift;
         private const ushort ServerReady = 3 + Shift;
-        private const string ConfigPath = @"Plugins\GameServer.xml";
-        private readonly List<ushort> _portsInUse = new List<ushort>();
+        private const ushort Log = 100 + Shift;
+        private const string ConfigPath = @"Plugins/GameServer.xml";
+        private readonly ConcurrentDictionary<IPAddress,List<ushort>> _portsInUse = new ConcurrentDictionary<IPAddress, List<ushort>>();
         private static readonly object PortLock = new object();
         private static readonly object InitializeLock = new object();
         private bool _debug = true;
@@ -57,7 +59,7 @@ namespace RoomSystemPlugin
                 try
                 {
                     document.Save(ConfigPath);
-                    WriteEvent("Created /Plugins/GameServer.xml!", LogType.Info);
+                    WriteEvent("Created Plugins/GameServer.xml!", LogType.Info);
                 }
                 catch (Exception ex)
                 {
@@ -117,18 +119,35 @@ namespace RoomSystemPlugin
                 {
                     case RegisterServer:
                     {
+                        IPAddress ip;
+                        using (var reader = message.GetReader())
+                        {
+                            ip = new IPAddress(reader.ReadBytes());
+                        }
+
+                        // Find an available port
+                        List<ushort> ports;
+                        if (_portsInUse.ContainsKey(ip))
+                        {
+                            ports = _portsInUse[ip];
+                        }
+                        else
+                        {
+                            _portsInUse[ip] = new List<ushort>();
+                            ports = _portsInUse[ip];
+                        }
+                            
                         ushort port = 4297;
-                            // Find an available port
                         lock (PortLock)
                         {
-                            while (_portsInUse.Contains(port))
+                            while (ports.Contains(port))
                             {
                                 port++;
                             }
-                            _portsInUse.Add(port);
+                            ports.Add(port);
                         }
 
-                        GameServers[client] = new Server(port, client);
+                        GameServers[client] = new Server(ip, port, client);
                         _loginPlugin.UsersLoggedIn.TryRemove(client, out _);
 
                         using (var writer = DarkRiftWriter.Create())
@@ -143,16 +162,24 @@ namespace RoomSystemPlugin
 
                         if (_debug)
                         {
-                            WriteEvent("New Server registered at port: " + port, LogType.Info);
+                            WriteEvent($"New Server registered at {ip}:{port}", LogType.Info);
                         }
                         break;
-                }
+                    }
                     case ServerAvailable:
                         GameServers[client].IsAvailable = true;
                         break;
                     case ServerReady:
                         _roomSystem.LoadGame(GameServers[client].Room);
                         break;
+                    case Log:
+                    {
+                        using (var reader = message.GetReader())
+                        {
+                            WriteEvent(reader.ReadString(), LogType.Fatal);
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -184,9 +211,10 @@ namespace RoomSystemPlugin
             {
                 return;
             }
+            var ports = _portsInUse[GameServers[client].Ip];
             lock (PortLock)
             {
-                _portsInUse.Remove(GameServers[client].Port);
+                ports.Remove(GameServers[client].Port);
             }
 
             GameServers.TryRemove(client, out _);

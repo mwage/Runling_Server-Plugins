@@ -1,11 +1,11 @@
-﻿using DarkRift;
-using DarkRift.Server;
-using LoginPlugin;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using DarkRift;
+using DarkRift.Server;
+using LoginPlugin;
 
 namespace RoomSystemPlugin
 {
@@ -45,13 +45,13 @@ namespace RoomSystemPlugin
         private const ushort StartGameSuccess = 16 + Shift;
         private const ushort StartGameFailed = 17 + Shift;
         private const ushort ServerReady = 18 + Shift;
-        
+
         private const string ConfigPath = @"Plugins/RoomSystem.xml";
         private static readonly object InitializeLock = new object();
         private readonly ConcurrentDictionary<ushort, Room> _playersInRooms = new ConcurrentDictionary<ushort, Room>();
         private bool _debug = true;
-        private Login _loginPlugin;
         private GameServer _gameServerPlugin;
+        private Login _loginPlugin;
 
         public RoomSystem(PluginLoadData pluginLoadData) : base(pluginLoadData)
         {
@@ -123,7 +123,9 @@ namespace RoomSystemPlugin
             {
                 // Check if message is meant for this plugin
                 if (message.Tag < Login.TagsPerPlugin * RoomTag || message.Tag >= Login.TagsPerPlugin * (RoomTag + 1))
+                {
                     return;
+                }
 
                 var client = e.Client;
                 switch (message.Tag)
@@ -131,8 +133,7 @@ namespace RoomSystemPlugin
                     case Create:
                     {
                         // If player isn't logged in -> return error 1
-                        if (!_loginPlugin.PlayerLoggedIn(client, CreateFailed, "Create Room failed."))
-                            return;
+                        if (!_loginPlugin.PlayerLoggedIn(client, CreateFailed, "Create Room failed.")) return;
 
                         string roomName;
                         GameType gameMode;
@@ -186,7 +187,9 @@ namespace RoomSystemPlugin
                     {
                         // If player isn't logged in -> return error 1
                         if (!_loginPlugin.PlayerLoggedIn(client, JoinFailed, "Join Room failed."))
+                        {
                             return;
+                        }
 
                         ushort roomId;
                         PlayerColor color;
@@ -211,7 +214,7 @@ namespace RoomSystemPlugin
                             // Return Error 3 for Room doesn't exist anymore
                             using (var writer = DarkRiftWriter.Create())
                             {
-                                writer.Write((byte)3);
+                                writer.Write((byte) 3);
 
                                 using (var msg = Message.Create(JoinFailed, writer))
                                 {
@@ -234,7 +237,7 @@ namespace RoomSystemPlugin
                         {
                             using (var writer = DarkRiftWriter.Create())
                             {
-                                writer.Write((byte)2);
+                                writer.Write((byte) 2);
 
                                 using (var msg = Message.Create(JoinFailed, writer))
                                 {
@@ -354,7 +357,7 @@ namespace RoomSystemPlugin
                             // Color already taken -> Send error 1
                             using (var writer = DarkRiftWriter.Create())
                             {
-                                writer.Write((byte)1);
+                                writer.Write((byte) 1);
 
                                 using (var msg = Message.Create(ChangeColorFailed, writer))
                                 {
@@ -396,8 +399,7 @@ namespace RoomSystemPlugin
                     case GetOpenRooms:
                     {
                         // If player isn't logged in -> return error 1
-                        if (!_loginPlugin.PlayerLoggedIn(client, GetOpenRoomsFailed, "GetRoomRequest failed."))
-                            return;
+                        if (!_loginPlugin.PlayerLoggedIn(client, GetOpenRoomsFailed, "GetRoomRequest failed.")) return;
 
                         // If he is, send back all available rooms
                         var availableRooms = RoomList.Values.Where(r => r.IsVisible && !r.HasStarted).ToList();
@@ -418,8 +420,7 @@ namespace RoomSystemPlugin
                     case StartGame:
                     {
                         // If player isn't logged in -> return error 1
-                        if (!_loginPlugin.PlayerLoggedIn(client, GetOpenRoomsFailed, "Start Game request failed."))
-                            return;
+                        if (!_loginPlugin.PlayerLoggedIn(client, GetOpenRoomsFailed, "Start Game request failed.")) return;
 
                         ushort roomId;
 
@@ -444,7 +445,7 @@ namespace RoomSystemPlugin
                             // Player isn't host of this room -> return error 2
                             using (var writer = DarkRiftWriter.Create())
                             {
-                                writer.Write((byte)2);
+                                writer.Write((byte) 2);
 
                                 using (var msg = Message.Create(StartGameFailed, writer))
                                 {
@@ -467,7 +468,7 @@ namespace RoomSystemPlugin
                             // No GameServer available -> return error 3
                             using (var writer = DarkRiftWriter.Create())
                             {
-                                writer.Write((byte)3);
+                                writer.Write((byte) 3);
 
                                 using (var msg = Message.Create(StartGameFailed, writer))
                                 {
@@ -488,6 +489,7 @@ namespace RoomSystemPlugin
 
                         using (var writer = DarkRiftWriter.Create())
                         {
+                            writer.Write(gameServer.Ip.GetAddressBytes());
                             writer.Write(gameServer.Port);
 
                             using (var msg = Message.Create(StartGameSuccess, writer))
@@ -501,7 +503,6 @@ namespace RoomSystemPlugin
                         break;
                     }
                 }
-
             }
         }
 
@@ -534,7 +535,7 @@ namespace RoomSystemPlugin
         {
             if (roomName == "")
             {
-                return  playerName + "'s Lobby";
+                return playerName + "'s Lobby";
             }
 
             return roomName;
@@ -544,7 +545,9 @@ namespace RoomSystemPlugin
         {
             var id = client.ID;
             if (!_playersInRooms.ContainsKey(id))
+            {
                 return;
+            }
 
             var room = _playersInRooms[id];
             var leaverName = room.PlayerList.FirstOrDefault(p => p.Id == client.ID)?.Name;
