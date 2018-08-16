@@ -89,7 +89,7 @@ namespace MySQLConnector
             }
             catch (Exception e)
             {
-                WriteEvent("Database Error: " + e.Message + " - " + e.StackTrace, LogType.Error);
+                WriteEvent("Database Error: " + e.Message + " - " + e.StackTrace + " - " + e.InnerException, LogType.Error);
             }
        
         }
